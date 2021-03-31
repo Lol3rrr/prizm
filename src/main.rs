@@ -24,5 +24,5 @@ fn main() {
     let serialized = g3a_file.serialize();
     compare(&g3a_content, &serialized);
 
-    std::fs::write("test.g3a", &serialized).unwrap();
+    std::fs::write("dino.g3a", &serialized).unwrap();
 }

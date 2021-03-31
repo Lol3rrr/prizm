@@ -25,9 +25,22 @@ pub struct File {
     pub eactivity: eactivity::EActivity,
 }
 
+fn write_magic_bytes(buffer: &mut [u8]) {
+    // The magic identifier
+    &buffer[0..0x000e].copy_from_slice(&HEADER_IDENTIFIER);
+
+    // 0x000F
+    buffer[0x000f] = 0xfe;
+
+    // 0x0024
+    buffer[0x0024] = 0x01;
+    buffer[0x0025] = 0x01;
+}
+
 // References
 // https://prizm.cemetech.net/index.php/G3A_File_Format
 // https://www.omnimaga.org/casio-calculator-programming-news-and-support/casio-prizm-already-for-sale/msg157437/#msg157437
+// https://gitlab.com/taricorp/mkg3a
 impl File {
     pub fn parse(content: &[u8]) -> Result<File, ParseError> {
         let identifier = &content[0..14];
@@ -111,7 +124,8 @@ impl File {
     pub fn serialize(&self) -> Vec<u8> {
         let mut result = vec![0; 0x7000];
 
-        &result[0..0x000e].copy_from_slice(&HEADER_IDENTIFIER);
+        // Writes all the "Magic" bits
+        write_magic_bytes(&mut result);
 
         // **
         // General Header stuff
@@ -119,8 +133,6 @@ impl File {
         let file_size = self.file_size.to_be_bytes();
         // 0x000E
         result[0x000e] = (file_size[3] ^ 0xff) - 0x41;
-        // 0x000F
-        result[0x000f] = 0xfe;
         // 0x0010
         result[0x0010] = file_size[0] ^ 0xff;
         result[0x0011] = file_size[1] ^ 0xff;
@@ -131,9 +143,6 @@ impl File {
         // 0x0016
         // TODO
         &result[0x0016..0x0016 + 4].copy_from_slice(&(0 as u32).to_be_bytes());
-        // 0x0024
-        result[0x0024] = 0x01;
-        result[0x0025] = 0x01;
         // 0x002e
         &result[0x002e..0x002e + 4]
             .copy_from_slice(&(self.executable_code.len() as u32).to_be_bytes());
@@ -172,7 +181,9 @@ impl File {
         result.extend_from_slice(&self.executable_code);
 
         // Checksum at the end
-        let checksum = util::checksum(&result);
+        let binary_checksum = util::checksum(&self.executable_code);
+        let header_checksum = util::checksum(&result[..0x7000]);
+        let checksum = binary_checksum.wrapping_add(header_checksum);
         let chechsum_bytes = checksum.to_be_bytes();
         result[0x0020..0x0024].copy_from_slice(&chechsum_bytes);
         result.extend_from_slice(&chechsum_bytes);

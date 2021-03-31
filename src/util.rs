@@ -7,7 +7,10 @@ pub fn write_string(target: &mut [u8], content: &str) {
     target[0..content_length].copy_from_slice(content.as_bytes());
 }
 
-// TODO
-pub fn checksum(_data: &[u8]) -> u32 {
-    0
+pub fn checksum(data: &[u8]) -> u32 {
+    let mut sum: u32 = 0;
+    for elem in data.iter() {
+        sum = sum.wrapping_add(*elem as u32);
+    }
+    sum
 }
