@@ -2,15 +2,15 @@ use crate::util::write_string;
 
 #[derive(Debug)]
 pub struct Localized {
-    english: String,
-    spanish: String,
-    german: String,
-    french: String,
-    portuguese: String,
-    chinese: String,
-    eactivity: bool,
-    version: String,
-    date: String,
+    pub english: String,
+    pub spanish: String,
+    pub german: String,
+    pub french: String,
+    pub portuguese: String,
+    pub chinese: String,
+    pub eactivity: bool,
+    pub version: String,
+    pub date: String,
 }
 
 impl Localized {

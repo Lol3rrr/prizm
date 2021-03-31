@@ -9,6 +9,21 @@ pub struct Image {
 }
 
 impl Image {
+    pub fn empty() -> Self {
+        let rows = vec![
+            vec![
+                Pixel {
+                    red: 0,
+                    green: 0,
+                    blue: 0,
+                };
+                92
+            ];
+            64
+        ];
+        Self { pixels: rows }
+    }
+
     pub fn parse(raw: &[u8]) -> Self {
         let mut rows = Vec::with_capacity(64);
         for y in 0..64 {

@@ -12,6 +12,18 @@ pub struct EActivity {
 }
 
 impl EActivity {
+    pub fn empty() -> Self {
+        Self {
+            english: String::new(),
+            spanish: String::new(),
+            german: String::new(),
+            french: String::new(),
+            portuguese: String::new(),
+            chinese: String::new(),
+            icon: vec![0; 0x0300],
+        }
+    }
+
     pub fn parse(content: &[u8]) -> Option<Self> {
         let raw_english = &content[0x0170..0x0194];
         let raw_spanish = &content[0x0194..0x01b8];

@@ -21,7 +21,7 @@ fn main() {
     let g3a_content = std::fs::read(g3a_path).unwrap();
     let g3a_file = g3a::File::parse(&g3a_content).unwrap();
 
-    let serialized = g3a_file.serialize();
+    let serialized = g3a_file.serialize("/dino_game.g3a");
     compare(&g3a_content, &serialized);
 
     std::fs::write("dino.g3a", &serialized).unwrap();
