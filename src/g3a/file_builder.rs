@@ -1,5 +1,7 @@
 use super::{eactivity, image, localization, File};
 
+use chrono::NaiveDateTime;
+
 pub struct FileBuilder {
     internal_name: Option<String>,
     short_name: Option<String>,
@@ -13,7 +15,9 @@ pub struct FileBuilder {
 // TODO
 // Add options for localization stuff
 impl FileBuilder {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, creation_date: NaiveDateTime) -> Self {
+        let date_string = creation_date.format("%Y.%m%d.%H%M").to_string();
+
         Self {
             internal_name: None,
             short_name: None,
@@ -27,8 +31,8 @@ impl FileBuilder {
                 portuguese: name.clone(),
                 chinese: name.clone(),
                 eactivity: false,
-                version: "00.00.0000".to_string(),
-                date: "0000.0000.0000".to_string(),
+                version: "01.00.0000".to_string(),
+                date: date_string,
             },
             eactivity: None,
             code: Vec::new(),
@@ -41,6 +45,14 @@ impl FileBuilder {
     }
     pub fn short_name<'a>(&'a mut self, n_short: String) -> &'a mut Self {
         self.short_name = Some(n_short);
+        self
+    }
+    pub fn selected_image<'a>(&'a mut self, n_image: image::Image) -> &'a mut Self {
+        self.selected = Some(n_image);
+        self
+    }
+    pub fn unselected_image<'a>(&'a mut self, n_image: image::Image) -> &'a mut Self {
+        self.unselected = Some(n_image);
         self
     }
     pub fn selected_image_path<'a>(&'a mut self, path: &str) -> &'a mut Self {
@@ -61,10 +73,12 @@ impl FileBuilder {
         let selected = self.selected.unwrap_or(image::Image::empty());
         let unselected = self.unselected.unwrap_or(image::Image::empty());
 
+        let file_size = 0x7000 + 0x4 + self.code.len() as u32;
+
         File {
             internal_name: self.internal_name.unwrap(),
             short_name: self.short_name.unwrap(),
-            file_size: 0,
+            file_size,
             selected_image: selected,
             unselected_image: unselected,
             executable_code: self.code,

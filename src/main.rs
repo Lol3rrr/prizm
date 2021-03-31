@@ -1,5 +1,7 @@
 use casio::g3a;
 
+use chrono::NaiveDate;
+
 fn compare(og: &[u8], new: &[u8]) {
     if og.len() != new.len() {
         println!("Different Lengths: {} != {}", og.len(), new.len());
@@ -21,8 +23,19 @@ fn main() {
     let g3a_content = std::fs::read(g3a_path).unwrap();
     let g3a_file = g3a::File::parse(&g3a_content).unwrap();
 
-    let serialized = g3a_file.serialize("/dino_game.g3a");
-    compare(&g3a_content, &serialized);
+    let creation_date = NaiveDate::from_ymd(2020, 04, 30).and_hms(15, 04, 0);
+    let mut new_file_builder = g3a::FileBuilder::new("dino".to_string(), creation_date);
+    new_file_builder
+        .short_name("dino".to_string())
+        .internal_name("@DINO".to_string())
+        .selected_image(g3a_file.selected_image.clone())
+        .unselected_image(g3a_file.unselected_image.clone())
+        .code(g3a_file.executable_code.clone());
+    let new_file = new_file_builder.finish();
 
-    std::fs::write("dino.g3a", &serialized).unwrap();
+    let og_serialized = g3a_file.serialize("/dino_game.g3a");
+    let new_serialized = new_file.serialize("/dino_game.g3a");
+    compare(&og_serialized, &new_serialized);
+
+    //std::fs::write("dino.g3a", &serialized).unwrap();
 }

@@ -3,7 +3,7 @@ use image::{io::Reader as ImageReader, DynamicImage, ImageBuffer, Rgb};
 mod pixel;
 pub use pixel::Pixel;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     pixels: Vec<Vec<Pixel>>,
 }
