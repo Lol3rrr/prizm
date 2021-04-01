@@ -1,12 +1,13 @@
 #[derive(Debug, PartialEq)]
 pub enum Keyword {
     Integer,
+    Void,
     Return,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
-    Integer(i64),
+    Integer(i32),
 }
 
 #[derive(Debug, PartialEq)]
@@ -18,7 +19,9 @@ pub enum Token {
     OpenCurlyBrace,
     CloseCurlyBrace,
     Semicolon,
+    Comma,
     Constant(Value),
+    Asterisk,
     Assignment,
     Plus,
     Minus,
@@ -27,6 +30,7 @@ pub enum Token {
 fn parse_word(word: &str, tokens: &mut Vec<Token>) {
     match word {
         "int" => tokens.push(Token::Keyword(Keyword::Integer)),
+        "void" => tokens.push(Token::Keyword(Keyword::Void)),
         "return" => tokens.push(Token::Keyword(Keyword::Return)),
         "=" => tokens.push(Token::Assignment),
         "+" => tokens.push(Token::Plus),
@@ -50,15 +54,19 @@ fn parse_seperator(seperator: &str, tokens: &mut Vec<Token>) {
         "{" => tokens.push(Token::OpenCurlyBrace),
         "}" => tokens.push(Token::CloseCurlyBrace),
         ";" => tokens.push(Token::Semicolon),
+        "*" => tokens.push(Token::Asterisk),
+        "," => tokens.push(Token::Comma),
         _ => {}
     };
 }
+
+const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', ','];
 
 pub fn tokenize(content: &str) -> Vec<Token> {
     let mut result = Vec::new();
 
     let mut left_to_search = content;
-    while let Some(index) = left_to_search.find(&['(', ')', '{', '}', ';', ' ', '\n'][..]) {
+    while let Some(index) = left_to_search.find(&SEPERATORS[..]) {
         let current = &left_to_search[..index];
         let seperator = &left_to_search[index..index + 1];
 
@@ -132,6 +140,22 @@ mod tests {
         let expected = vec![
             Token::Constant(Value::Integer(2)),
             Token::Minus,
+            Token::Constant(Value::Integer(2)),
+            Token::Semicolon,
+        ];
+
+        assert_eq!(expected, tokenize(content));
+    }
+
+    #[test]
+    fn basic_ptr_stuff() {
+        let content = "int* test = 2;";
+
+        let expected = vec![
+            Token::Keyword(Keyword::Integer),
+            Token::Asterisk,
+            Token::Identifier("test".to_string()),
+            Token::Assignment,
             Token::Constant(Value::Integer(2)),
             Token::Semicolon,
         ];

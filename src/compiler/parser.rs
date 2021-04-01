@@ -5,7 +5,10 @@ use super::{
     lexer::{Keyword, Token},
 };
 
+mod call_params;
+mod datatype;
 mod expression;
+mod func_args;
 
 fn parse_statements<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
 where
@@ -27,12 +30,10 @@ where
                 // Removes the next item if its a semicolon
                 iter.next_if_eq(&&Token::Semicolon);
             }
-            Token::Keyword(raw_datatype) => {
-                iter.next();
-
-                let datatype = match raw_datatype {
-                    Keyword::Integer => ir::DataType::I64,
-                    _ => break,
+            Token::Keyword(_) => {
+                let d_type = match datatype::parse(iter) {
+                    Some(d) => d,
+                    None => break,
                 };
 
                 let var_name = match iter.peek() {
@@ -40,7 +41,7 @@ where
                     _ => break,
                 };
 
-                result.push(ir::Statement::Declaration(var_name, datatype));
+                result.push(ir::Statement::Declaration(var_name, d_type));
 
                 // Removes the next item if its a semicolon
                 iter.next_if_eq(&&Token::Semicolon);
@@ -49,20 +50,34 @@ where
                 iter.next();
 
                 match iter.next() {
-                    Some(Token::Assignment) => {}
+                    Some(Token::Assignment) => {
+                        let expression = match expression::parse(iter) {
+                            Some(exp) => exp,
+                            None => break,
+                        };
+
+                        result.push(ir::Statement::Assignment(name.to_owned(), expression));
+
+                        // Removes the next item if its a semicolon
+                        iter.next_if_eq(&&Token::Semicolon);
+                    }
+                    Some(Token::OpenParan) => {
+                        let params = match call_params::parse(iter) {
+                            Some(p) => p,
+                            None => break,
+                        };
+
+                        result.push(ir::Statement::SingleExpression(ir::Expression::Call(
+                            name.to_owned(),
+                            params,
+                        )));
+
+                        iter.next_if_eq(&&Token::Semicolon);
+                    }
                     _ => break,
                 };
-
-                let expression = match expression::parse(iter) {
-                    Some(exp) => exp,
-                    None => break,
-                };
-
-                result.push(ir::Statement::Assignment(name.to_owned(), expression));
-
-                // Removes the next item if its a semicolon
-                iter.next_if_eq(&&Token::Semicolon);
             }
+            Token::CloseCurlyBrace => break,
             _ => {
                 println!("[Parse-Statements] Unexpected: {:?}", peeked);
                 break;
@@ -78,7 +93,7 @@ where
     I: Iterator<Item = &'a Token>,
 {
     let datatype = match iter.next() {
-        Some(Token::Keyword(Keyword::Integer)) => ir::DataType::I64,
+        Some(Token::Keyword(Keyword::Integer)) => ir::DataType::I32,
         _ => return None,
     };
 
@@ -92,13 +107,8 @@ where
         _ => return None,
     };
 
-    // TODO
-    // Parse Arguments
+    let args = func_args::parse(iter)?;
 
-    match iter.next() {
-        Some(Token::CloseParan) => {}
-        _ => return None,
-    };
     match iter.next() {
         Some(Token::OpenCurlyBrace) => {}
         _ => return None,
@@ -106,16 +116,14 @@ where
 
     let statements = parse_statements(iter);
 
-    Some(ir::Function(name, datatype, statements))
+    Some(ir::Function(name, datatype, args, statements))
 }
 
 pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
     let mut functions = Vec::new();
 
     let mut iter = tokens.iter().peekable();
-    while let Some(token) = iter.peek() {
-        println!("[Parse] Peeked: {:?}", token);
-
+    while let Some(_) = iter.peek() {
         if let Some(func) = parse_function(&mut iter) {
             functions.push(func);
         }
@@ -126,9 +134,34 @@ pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
 
 #[cfg(test)]
 mod tests {
-    use ir::DataType;
-
     use super::*;
+    use crate::compiler::lexer::Value;
+
+    #[test]
+    fn simple_function_with_return() {
+        let tokens = &[
+            Token::Keyword(Keyword::Integer),
+            Token::Identifier("main".to_string()),
+            Token::OpenParan,
+            Token::CloseParan,
+            Token::OpenCurlyBrace,
+            Token::Keyword(Keyword::Return),
+            Token::Constant(Value::Integer(0)),
+            Token::Semicolon,
+            Token::CloseCurlyBrace,
+        ];
+
+        let expected = vec![ir::Function(
+            "main".to_string(),
+            ir::DataType::I32,
+            vec![],
+            vec![ir::Statement::Return(ir::Expression::Constant(
+                ir::Value::I32(0),
+            ))],
+        )];
+
+        assert_eq!(expected, parse(tokens));
+    }
 
     #[test]
     fn simple_function_with_return_and_variable() {
@@ -151,14 +184,15 @@ mod tests {
 
         let expected = vec![ir::Function(
             "main".to_string(),
-            ir::DataType::I64,
+            ir::DataType::I32,
+            vec![],
             vec![
-                ir::Statement::Declaration("test".to_string(), DataType::I64),
+                ir::Statement::Declaration("test".to_string(), ir::DataType::I32),
                 ir::Statement::Assignment(
                     "test".to_string(),
-                    ir::Expression::Constant(ir::Value::I64(2)),
+                    ir::Expression::Constant(ir::Value::I32(2)),
                 ),
-                ir::Statement::Return(ir::Expression::Constant(ir::Value::I64(0))),
+                ir::Statement::Return(ir::Expression::Constant(ir::Value::I32(0))),
             ],
         )];
 
@@ -185,16 +219,17 @@ mod tests {
 
         let expected = vec![ir::Function(
             "main".to_string(),
-            ir::DataType::I64,
+            ir::DataType::I32,
+            vec![],
             vec![
-                ir::Statement::Declaration("test_add".to_string(), DataType::I64),
+                ir::Statement::Declaration("test_add".to_string(), ir::DataType::I32),
                 ir::Statement::Assignment(
                     "test_add".to_string(),
                     ir::Expression::Operation(
                         ir::OP::Add,
                         vec![
-                            ir::Expression::Constant(ir::Value::I64(2)),
-                            ir::Expression::Constant(ir::Value::I64(3)),
+                            ir::Expression::Constant(ir::Value::I32(2)),
+                            ir::Expression::Constant(ir::Value::I32(3)),
                         ],
                     ),
                 ),
@@ -225,20 +260,21 @@ mod tests {
 
         let expected = vec![ir::Function(
             "main".to_string(),
-            ir::DataType::I64,
+            ir::DataType::I32,
+            vec![],
             vec![
-                ir::Statement::Declaration("test_add".to_string(), DataType::I64),
+                ir::Statement::Declaration("test_add".to_string(), ir::DataType::I32),
                 ir::Statement::Assignment(
                     "test_add".to_string(),
                     ir::Expression::Operation(
                         ir::OP::Add,
                         vec![
-                            ir::Expression::Constant(ir::Value::I64(2)),
+                            ir::Expression::Constant(ir::Value::I32(2)),
                             ir::Expression::Operation(
                                 ir::OP::Add,
                                 vec![
-                                    ir::Expression::Constant(ir::Value::I64(3)),
-                                    ir::Expression::Constant(ir::Value::I64(4)),
+                                    ir::Expression::Constant(ir::Value::I32(3)),
+                                    ir::Expression::Constant(ir::Value::I32(4)),
                                 ],
                             ),
                         ],
@@ -270,19 +306,91 @@ mod tests {
 
         let expected = vec![ir::Function(
             "main".to_string(),
-            ir::DataType::I64,
+            ir::DataType::I32,
+            vec![],
             vec![
-                ir::Statement::Declaration("test_sub".to_string(), DataType::I64),
+                ir::Statement::Declaration("test_sub".to_string(), ir::DataType::I32),
                 ir::Statement::Assignment(
                     "test_sub".to_string(),
                     ir::Expression::Operation(
                         ir::OP::Substract,
                         vec![
-                            ir::Expression::Constant(ir::Value::I64(2)),
-                            ir::Expression::Constant(ir::Value::I64(3)),
+                            ir::Expression::Constant(ir::Value::I32(2)),
+                            ir::Expression::Constant(ir::Value::I32(3)),
                         ],
                     ),
                 ),
+            ],
+        )];
+
+        assert_eq!(expected, parse(tokens));
+    }
+
+    #[test]
+    fn simple_call() {
+        let tokens = &[
+            Token::Keyword(Keyword::Integer),
+            Token::Identifier("main".to_string()),
+            Token::OpenParan,
+            Token::CloseParan,
+            Token::OpenCurlyBrace,
+            Token::Identifier("test_func".to_string()),
+            Token::OpenParan,
+            Token::CloseParan,
+            Token::Semicolon,
+            Token::Keyword(Keyword::Return),
+            Token::Constant(Value::Integer(0)),
+            Token::Semicolon,
+            Token::CloseCurlyBrace,
+        ];
+
+        let expected = vec![ir::Function(
+            "main".to_string(),
+            ir::DataType::I32,
+            vec![],
+            vec![
+                ir::Statement::SingleExpression(ir::Expression::Call(
+                    "test_func".to_string(),
+                    vec![],
+                )),
+                ir::Statement::Return(ir::Expression::Constant(ir::Value::I32(0))),
+            ],
+        )];
+
+        assert_eq!(expected, parse(tokens));
+    }
+    #[test]
+    fn call_as_assignment() {
+        let tokens = &[
+            Token::Keyword(Keyword::Integer),
+            Token::Identifier("main".to_string()),
+            Token::OpenParan,
+            Token::CloseParan,
+            Token::OpenCurlyBrace,
+            Token::Keyword(Keyword::Integer),
+            Token::Identifier("test_var".to_string()),
+            Token::Assignment,
+            Token::Identifier("test_func".to_string()),
+            Token::OpenParan,
+            Token::CloseParan,
+            Token::Semicolon,
+            Token::Keyword(Keyword::Return),
+            Token::Constant(Value::Integer(0)),
+            Token::Semicolon,
+            Token::CloseCurlyBrace,
+        ];
+
+        let expected = vec![ir::Function(
+            "main".to_string(),
+            ir::DataType::I32,
+            vec![],
+            vec![
+                ir::Statement::Declaration("test_var".to_string(), ir::DataType::I32),
+                ir::Statement::Assignment(
+                    "test_var".to_string(),
+                    ir::Expression::Call("test_func".to_string(), vec![]),
+                ),
+                ir::Statement::Return(ir::Expression::Constant(ir::Value::I32(0))),
             ],
         )];
 

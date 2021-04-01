@@ -1,6 +1,6 @@
-use casio::g3a;
+use casio::{compiler, g3a};
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Utc};
 
 fn compare(og: &[u8], new: &[u8]) {
     if og.len() != new.len() {
@@ -37,5 +37,18 @@ fn main() {
     let new_serialized = new_file.serialize("/dino_game.g3a");
     compare(&og_serialized, &new_serialized);
 
-    //std::fs::write("dino.g3a", &serialized).unwrap();
+    // Actually compiling a program
+    let compiler_path = "./examples/simple.c";
+    let compiler_content = std::fs::read_to_string(compiler_path).unwrap();
+    let compiled_code = compiler::compile(&compiler_content);
+
+    let mut compiled_file_builder =
+        g3a::FileBuilder::new("test".to_string(), Utc::now().naive_utc());
+    compiled_file_builder
+        .short_name("test".to_string())
+        .internal_name("@TEST".to_string())
+        .code(compiled_code);
+    let compiled_file = compiled_file_builder.finish();
+
+    std::fs::write("./test.g3a", compiled_file.serialize("/test.g3a")).unwrap();
 }
