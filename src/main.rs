@@ -51,4 +51,16 @@ fn main() {
     let compiled_file = compiled_file_builder.finish();
 
     std::fs::write("./test.g3a", compiled_file.serialize("/test.g3a")).unwrap();
+
+    // Example binary
+    let code = std::fs::read("./example.bin").unwrap();
+    let mut example_file_builder =
+        g3a::FileBuilder::new("example".to_string(), Utc::now().naive_utc());
+    example_file_builder
+        .short_name("example".to_string())
+        .internal_name("@EXAMP".to_string())
+        .code(code);
+    let example_file = example_file_builder.finish();
+
+    std::fs::write("./example.g3a", example_file.serialize("/example.g3a")).unwrap();
 }

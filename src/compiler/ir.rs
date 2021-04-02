@@ -20,6 +20,8 @@ pub enum OP {
 pub enum Expression {
     Constant(Value),
     Variable(String),
+    Reference(String),
+    Dereference(String),
     Operation(OP, Vec<Expression>),
     Call(String, Vec<Expression>),
     Empty,
@@ -29,6 +31,7 @@ pub enum Expression {
 pub enum Statement {
     Declaration(String, DataType),
     Assignment(String, Expression),
+    DerefAssignment(String, Expression),
     Return(Expression),
     SingleExpression(Expression),
 }

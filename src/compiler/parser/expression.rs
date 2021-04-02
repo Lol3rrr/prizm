@@ -51,6 +51,23 @@ where
                 _ => Some(left_side),
             }
         }
+        Some(Token::And) | Some(Token::Asterisk) => {
+            let first = iter.next().unwrap();
+
+            let var_name = match iter.peek() {
+                Some(Token::Identifier(name)) => {
+                    iter.next();
+                    name.to_string()
+                }
+                _ => return None,
+            };
+
+            match first {
+                Token::And => Some(ir::Expression::Reference(var_name)),
+                Token::Asterisk => Some(ir::Expression::Dereference(var_name)),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }
@@ -109,6 +126,23 @@ mod tests {
                 ir::Expression::Variable("test_2".to_string()),
             ],
         ));
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+    }
+
+    #[test]
+    fn reference_to_variable() {
+        let tokens = &[Token::And, Token::Identifier("test".to_string())];
+
+        let expected = Some(ir::Expression::Reference("test".to_string()));
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+    }
+    #[test]
+    fn dereference_variable() {
+        let tokens = &[Token::Asterisk, Token::Identifier("test".to_string())];
+
+        let expected = Some(ir::Expression::Dereference("test".to_string()));
 
         assert_eq!(expected, parse(&mut tokens.iter().peekable()));
     }

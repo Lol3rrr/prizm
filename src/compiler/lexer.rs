@@ -22,6 +22,7 @@ pub enum Token {
     Comma,
     Constant(Value),
     Asterisk,
+    And,
     Assignment,
     Plus,
     Minus,
@@ -55,12 +56,13 @@ fn parse_seperator(seperator: &str, tokens: &mut Vec<Token>) {
         "}" => tokens.push(Token::CloseCurlyBrace),
         ";" => tokens.push(Token::Semicolon),
         "*" => tokens.push(Token::Asterisk),
+        "&" => tokens.push(Token::And),
         "," => tokens.push(Token::Comma),
         _ => {}
     };
 }
 
-const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', ','];
+const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', '&', ','];
 
 pub fn tokenize(content: &str) -> Vec<Token> {
     let mut result = Vec::new();

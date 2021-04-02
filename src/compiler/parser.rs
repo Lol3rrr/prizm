@@ -77,6 +77,28 @@ where
                     _ => break,
                 };
             }
+            Token::Asterisk => {
+                iter.next();
+
+                let var_name = match iter.next() {
+                    Some(Token::Identifier(n)) => n.to_owned(),
+                    _ => break,
+                };
+
+                match iter.next() {
+                    Some(Token::Assignment) => {
+                        let exp = match expression::parse(iter) {
+                            Some(e) => e,
+                            None => break,
+                        };
+
+                        result.push(ir::Statement::DerefAssignment(var_name, exp));
+
+                        iter.next_if_eq(&&Token::Semicolon);
+                    }
+                    _ => break,
+                };
+            }
             Token::CloseCurlyBrace => break,
             _ => {
                 println!("[Parse-Statements] Unexpected: {:?}", peeked);

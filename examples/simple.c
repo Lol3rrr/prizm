@@ -1,9 +1,12 @@
-int calc(int first, int second) {
-	return first + second;
+int GetKey(int* key) {
+	*key = __syscall(3755); 
+
+	return 0;
 }
 
 int main() {
-	int result = 0;
-	calc(3, 5);
+	int test = 0;
+	GetKey(&test);
+
 	return 0;
 }
