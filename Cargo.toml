@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 image = { version = "0.23" }
 chrono = { version = "0.4.19" }
+structopt = { version = "0.3" }

@@ -1,66 +1,46 @@
-use casio::{compiler, g3a};
+use casio::{compiler, emulator, g3a};
 
-use chrono::{NaiveDate, Utc};
+use chrono::Utc;
+use structopt::StructOpt;
 
-fn compare(og: &[u8], new: &[u8]) {
-    if og.len() != new.len() {
-        println!("Different Lengths: {} != {}", og.len(), new.len());
-        return;
-    }
-
-    for index in 0..og.len() {
-        let og_elem = og[index];
-        let new_elem = new[index];
-
-        if og_elem != new_elem {
-            println!("[{:x}] {} != {}", index, og_elem, new_elem);
-        }
-    }
+#[derive(Debug, StructOpt)]
+enum Rizm {
+    Compile {
+        #[structopt(short = "i")]
+        input: String,
+        #[structopt(short = "o")]
+        output: String,
+    },
+    Emulate {
+        #[structopt(short = "i")]
+        input: String,
+    },
 }
 
 fn main() {
-    let g3a_path = "./examples/dino.g3a";
-    let g3a_content = std::fs::read(g3a_path).unwrap();
-    let g3a_file = g3a::File::parse(&g3a_content).unwrap();
+    let cmd = Rizm::from_args();
 
-    let creation_date = NaiveDate::from_ymd(2020, 04, 30).and_hms(15, 04, 0);
-    let mut new_file_builder = g3a::FileBuilder::new("dino".to_string(), creation_date);
-    new_file_builder
-        .short_name("dino".to_string())
-        .internal_name("@DINO".to_string())
-        .selected_image(g3a_file.selected_image.clone())
-        .unselected_image(g3a_file.unselected_image.clone())
-        .code(g3a_file.executable_code.clone());
-    let new_file = new_file_builder.finish();
+    match cmd {
+        Rizm::Compile { input, output } => {
+            // Actually compiling a program
+            let compiler_content = std::fs::read_to_string(input).unwrap();
+            let compiled_code = compiler::compile(&compiler_content);
 
-    let og_serialized = g3a_file.serialize("/dino_game.g3a");
-    let new_serialized = new_file.serialize("/dino_game.g3a");
-    compare(&og_serialized, &new_serialized);
+            let mut compiled_file_builder =
+                g3a::FileBuilder::new("test".to_string(), Utc::now().naive_utc());
+            compiled_file_builder
+                .short_name("test".to_string())
+                .internal_name("@TEST".to_string())
+                .code(compiled_code);
+            let compiled_file = compiled_file_builder.finish();
 
-    // Actually compiling a program
-    let compiler_path = "./examples/simple.c";
-    let compiler_content = std::fs::read_to_string(compiler_path).unwrap();
-    let compiled_code = compiler::compile(&compiler_content);
+            std::fs::write("./test.g3a", compiled_file.serialize("/test.g3a")).unwrap();
+        }
+        Rizm::Emulate { input } => {
+            let raw_file = std::fs::read(input).unwrap();
+            let file = g3a::File::parse(&raw_file).unwrap();
 
-    let mut compiled_file_builder =
-        g3a::FileBuilder::new("test".to_string(), Utc::now().naive_utc());
-    compiled_file_builder
-        .short_name("test".to_string())
-        .internal_name("@TEST".to_string())
-        .code(compiled_code);
-    let compiled_file = compiled_file_builder.finish();
-
-    std::fs::write("./test.g3a", compiled_file.serialize("/test.g3a")).unwrap();
-
-    // Example binary
-    let code = std::fs::read("./example.bin").unwrap();
-    let mut example_file_builder =
-        g3a::FileBuilder::new("example".to_string(), Utc::now().naive_utc());
-    example_file_builder
-        .short_name("example".to_string())
-        .internal_name("@EXAMP".to_string())
-        .code(code);
-    let example_file = example_file_builder.finish();
-
-    std::fs::write("./example.g3a", example_file.serialize("/example.g3a")).unwrap();
+            emulator::emulate(file);
+        }
+    };
 }

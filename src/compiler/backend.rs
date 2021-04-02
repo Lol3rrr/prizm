@@ -1,70 +1,78 @@
-use super::ir::{self, Statement};
+use std::collections::HashMap;
+
+use super::ir;
 
 mod expression;
+mod function;
+mod statement;
 mod syscall;
 
-fn generate_statement(statement: &ir::Statement) -> Vec<u8> {
-    match statement {
-        Statement::DerefAssignment(name, exp) => {
-            let mut result = Vec::new();
+pub type Offsets = HashMap<String, u32>;
+pub type Functions = HashMap<String, ir::Function>;
 
-            println!("Deref-Assign: {} = {:?}", name, exp);
+fn initial_main_jump(result: &mut Vec<u8>) {
+    // Storing the First byte
+    result.push(0xe2);
+    result.push(0);
+    // Shift r2 one byte left and add the second byte
+    result.push(0x42);
+    result.push(0x18);
+    result.push(0x72);
+    result.push(0);
+    // Shift r2 one byte left and add the third byte
+    result.push(0x42);
+    result.push(0x18);
+    result.push(0x72);
+    result.push(0);
+    // Shift r2 one byte left and add the third byte
+    result.push(0x42);
+    result.push(0x18);
+    result.push(0x72);
+    result.push(0);
 
-            // Evaluate the expression first
-            result.append(&mut expression::generate(exp));
+    // JMP
+    result.push(0x42);
+    result.push(0x2b);
 
-            // TODO
-            // Actually assign the resulting value to the variable
-
-            result
-        }
-        Statement::Return(exp) => {
-            let mut result = Vec::new();
-
-            result.append(&mut expression::generate(exp));
-
-            // The actual return call
-            result.push(0x00);
-            result.push(0x0b);
-
-            // Noop because the return is a delayed branch instruction
-            result.push(0x00);
-            result.push(0x09);
-
-            result
-        }
-        Statement::SingleExpression(exp) => expression::generate(exp),
-        _ => {
-            println!("Unexpected: {:?}", statement);
-            Vec::new()
-        }
-    }
+    // Noop
+    result.push(0x00);
+    result.push(0x09);
+}
+fn fixup_main_jump(result: &mut Vec<u8>, main_offset: u32) {
+    let target_bytes = main_offset.to_be_bytes();
+    result[1] = target_bytes[0];
+    result[5] = target_bytes[1];
+    result[9] = target_bytes[2];
+    result[13] = target_bytes[3];
 }
 
-fn generate_function(func: &ir::Function) -> Vec<u8> {
-    func.pretty_print();
-
-    let mut result = Vec::new();
-
-    for statement in func.3.iter() {
-        result.append(&mut generate_statement(statement));
+fn print_instructions(instr: &[u8]) {
+    for window in instr.chunks(2) {
+        println!("{:02x}{:02x}", window[0], window[1]);
     }
-
-    println!("Result: {:?}", result);
-
-    result
 }
 
 // TODO
-pub fn generate(funcs: Vec<ir::Function>) -> Vec<u8> {
+pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
     let mut result = Vec::new();
 
-    println!("Generating-IR:");
-    for func in funcs.iter() {
-        result.append(&mut generate_function(func));
+    // The Jump to main
+    initial_main_jump(&mut result);
+
+    let mut functions = HashMap::<String, ir::Function>::new();
+    for tmp in funcs.drain(..) {
+        functions.insert(tmp.0.clone(), tmp);
     }
 
-    println!("Final-Result: {:?}", result);
+    let main_func = functions.get("main").unwrap();
+
+    let mut offsets = HashMap::new();
+    function::generate(main_func, &mut result, &mut offsets, &functions);
+
+    fixup_main_jump(&mut result, *offsets.get("main").unwrap());
+
+    print_instructions(&result);
+    println!("Offsets: {:?}", offsets);
 
     result
 }
