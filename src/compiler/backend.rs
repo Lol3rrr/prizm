@@ -4,6 +4,7 @@ use super::ir;
 
 mod expression;
 mod function;
+mod internal;
 mod statement;
 mod syscall;
 
@@ -56,6 +57,8 @@ fn print_instructions(instr: &[u8]) {
 pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
     let mut result = Vec::new();
 
+    // Setup Stuff
+    //result.append(&mut internal::stack::init_stack());
     // The Jump to main
     initial_main_jump(&mut result);
 

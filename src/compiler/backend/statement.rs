@@ -1,4 +1,4 @@
-use super::{expression, Functions, Offsets};
+use super::{expression, internal, Functions, Offsets};
 use crate::compiler::ir::{self, Statement};
 
 pub fn generate(
@@ -26,13 +26,7 @@ pub fn generate(
 
             result.append(&mut expression::generate(exp, pre_asm, offsets, functions));
 
-            // The actual return call
-            result.push(0x00);
-            result.push(0x0b);
-
-            // Noop because the return is a delayed branch instruction
-            result.push(0x00);
-            result.push(0x09);
+            result.append(&mut internal::funcs::ret());
 
             result
         }

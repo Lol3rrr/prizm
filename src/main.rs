@@ -40,7 +40,8 @@ fn main() {
             let raw_file = std::fs::read(input).unwrap();
             let file = g3a::File::parse(&raw_file).unwrap();
 
-            emulator::emulate(file);
+            let mut em = emulator::Emulator::new(file);
+            while em.emulate_single() {}
         }
     };
 }
