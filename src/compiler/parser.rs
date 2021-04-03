@@ -6,6 +6,7 @@ use super::{
 };
 
 mod call_params;
+mod comparison;
 mod datatype;
 mod expression;
 mod func_args;
@@ -30,6 +31,43 @@ where
                 // Removes the next item if its a semicolon
                 iter.next_if_eq(&&Token::Semicolon);
             }
+            Token::Keyword(Keyword::While) => {
+                iter.next();
+
+                match iter.next() {
+                    Some(Token::OpenParan) => {}
+                    _ => break,
+                };
+
+                let left_exp = match expression::parse(iter) {
+                    Some(exp) => exp,
+                    None => break,
+                };
+
+                let comp = match comparison::parse(iter) {
+                    Some(c) => c,
+                    None => break,
+                };
+
+                let right_exp = match expression::parse(iter) {
+                    Some(exp) => exp,
+                    None => break,
+                };
+
+                match iter.next() {
+                    Some(Token::CloseParan) => {}
+                    _ => break,
+                };
+
+                match iter.next() {
+                    Some(Token::OpenCurlyBrace) => {}
+                    _ => break,
+                };
+
+                let inner = parse_statements(iter);
+
+                result.push(ir::Statement::WhileLoop(left_exp, comp, right_exp, inner));
+            }
             Token::Keyword(_) => {
                 let d_type = match datatype::parse(iter) {
                     Some(d) => d,
@@ -50,7 +88,7 @@ where
                 iter.next();
 
                 match iter.next() {
-                    Some(Token::Assignment) => {
+                    Some(Token::Equals) => {
                         let expression = match expression::parse(iter) {
                             Some(exp) => exp,
                             None => break,
@@ -86,7 +124,7 @@ where
                 };
 
                 match iter.next() {
-                    Some(Token::Assignment) => {
+                    Some(Token::Equals) => {
                         let exp = match expression::parse(iter) {
                             Some(e) => e,
                             None => break,
@@ -195,7 +233,7 @@ mod tests {
             Token::OpenCurlyBrace,
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Semicolon,
             Token::Keyword(Keyword::Return),
@@ -231,7 +269,7 @@ mod tests {
             Token::OpenCurlyBrace,
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test_add".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Plus,
             Token::Constant(Value::Integer(3)),
@@ -270,7 +308,7 @@ mod tests {
             Token::OpenCurlyBrace,
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test_add".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Plus,
             Token::Constant(Value::Integer(3)),
@@ -318,7 +356,7 @@ mod tests {
             Token::OpenCurlyBrace,
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test_sub".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Minus,
             Token::Constant(Value::Integer(3)),
@@ -391,7 +429,7 @@ mod tests {
             Token::OpenCurlyBrace,
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test_var".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Identifier("test_func".to_string()),
             Token::OpenParan,
             Token::CloseParan,

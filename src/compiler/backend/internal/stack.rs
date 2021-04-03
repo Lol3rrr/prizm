@@ -6,13 +6,9 @@ pub fn push_register(reg: u8) -> Vec<u8> {
 
     let mut result = Vec::new();
 
-    // Move Stack pointer(r15) - 4 (32bit) (0xf8 is the Two's complement of 4)
-    result.push(0x7f);
-    result.push(0xf8);
-
-    // Move Register at the location of the stack pointer
+    // R15 - 4 -> R15, Register -> (R15)
     result.push(0x2f);
-    result.push((register_num << 4) | 0x02);
+    result.push(0x06 | (register_num << 4));
 
     result
 }
@@ -22,12 +18,9 @@ pub fn pop_register(reg: u8) -> Vec<u8> {
 
     let mut result = Vec::new();
 
-    // Load the value at the Stack pointer into r0
+    // (R15) -> Register, R15 + 4 -> R15
     result.push(0x60 | register_num);
-    result.push(0xf2);
-    // Move Stack Pointer(r15) + 4 (32bit)
-    result.push(0x7f);
-    result.push(0x04);
+    result.push(0xf6);
 
     result
 }
@@ -38,26 +31,26 @@ mod tests {
 
     #[test]
     fn push_r0() {
-        let expected: Vec<u8> = vec![0x7f, 0xf8, 0x2f, 0x02];
+        let expected: Vec<u8> = vec![0x2f, 0x06];
 
         assert_eq!(expected, push_register(0));
     }
     #[test]
     fn push_r9() {
-        let expected: Vec<u8> = vec![0x7f, 0xf8, 0x2f, 0x92];
+        let expected: Vec<u8> = vec![0x2f, 0x96];
 
         assert_eq!(expected, push_register(9));
     }
 
     #[test]
     fn pop_r0() {
-        let expected: Vec<u8> = vec![0x60, 0xf2, 0x7f, 0x04];
+        let expected: Vec<u8> = vec![0x60, 0xf6];
 
         assert_eq!(expected, pop_register(0));
     }
     #[test]
     fn pop_r9() {
-        let expected: Vec<u8> = vec![0x69, 0xf2, 0x7f, 0x04];
+        let expected: Vec<u8> = vec![0x69, 0xf6];
 
         assert_eq!(expected, pop_register(9));
     }

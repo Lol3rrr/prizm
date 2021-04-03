@@ -5,23 +5,14 @@ int GetKey(int* key) {
 }
 
 int main() {
+	__syscall(626);
+	__syscall(607);
+
 	int local_test = 0;
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
-	GetKey(&local_test);
+	while (0 == 0) {
+		__syscall(626);
+		__syscall(607);
+	}
 
 	return 0;
 }

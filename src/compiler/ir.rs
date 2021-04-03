@@ -17,6 +17,11 @@ pub enum OP {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum Comparison {
+    Equal,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Constant(Value),
     Variable(String),
@@ -34,6 +39,7 @@ pub enum Statement {
     DerefAssignment(String, Expression),
     Return(Expression),
     SingleExpression(Expression),
+    WhileLoop(Expression, Comparison, Expression, Vec<Statement>),
 }
 
 #[derive(Debug, PartialEq)]

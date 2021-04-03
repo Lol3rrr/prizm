@@ -35,23 +35,31 @@ pub struct Emulator {
 
 impl Emulator {
     pub fn new(file: g3a::File) -> Self {
+        let mut memory = Memory::new();
+        memory.write_register(15, 0x7FFFF);
+
         Self {
-            memory: Memory::new(),
+            memory,
             pc: 0,
             code: file.executable_code,
         }
     }
 
+    pub fn fetch_instruction(&self, pc: u32) -> Option<(u8, u8, u8, u8)> {
+        let first = self.code.get(pc as usize)?;
+        let second = self.code.get((pc + 1) as usize)?;
+
+        Some((
+            (first & 0xf0) >> 4,
+            first & 0x0f,
+            (second & 0xf0) >> 4,
+            second & 0x0f,
+        ))
+    }
+
     pub fn emulate_single(&mut self) -> bool {
-        match self.code.get(self.pc as usize) {
-            Some(part1) => {
-                let part2 = self.code.get((self.pc + 1) as usize).unwrap();
-
-                let nibble_1 = (part1 & 0xf0) >> 4;
-                let nibble_2 = part1 & 0x0f;
-                let nibble_3 = (part2 & 0xf0) >> 4;
-                let nibble_4 = part2 & 0x0f;
-
+        match self.fetch_instruction(self.pc) {
+            Some((nibble_1, nibble_2, nibble_3, nibble_4)) => {
                 match (nibble_1, nibble_2, nibble_3, nibble_4) {
                     (0xe, register, value_p1, value_p2) => {
                         println!(
@@ -128,6 +136,18 @@ impl Emulator {
                         self.memory
                             .write_heap(n, self.memory.read_register(m_register));
                     }
+                    (0x2, n_register, m_register, 0xa) => {
+                        println!(
+                            "[{:4x}] XOR R{} ^ R{} -> R{}",
+                            self.pc, n_register, m_register, n_register
+                        );
+
+                        self.memory.write_register(
+                            n_register,
+                            self.memory.read_register(n_register)
+                                ^ self.memory.read_register(m_register),
+                        );
+                    }
                     (0x4, m_register, 0x0, 0xb) => {
                         println!("[{:4x}] JSR R{} -> PC", self.pc, m_register);
 
@@ -154,10 +174,69 @@ impl Emulator {
                             self.memory.read_heap(self.memory.read_register(m_register)),
                         );
                     }
+                    (0x6, n_register, m_register, 0x6) => {
+                        println!(
+                            "[{:4x}] MOV.L (R{}) -> R{}, R{} + 4 -> R{}",
+                            self.pc, m_register, n_register, m_register, m_register
+                        );
+
+                        self.memory.write_register(
+                            n_register,
+                            self.memory.read_heap(self.memory.read_register(m_register)),
+                        );
+                        self.memory
+                            .write_register(m_register, self.memory.read_register(m_register) + 4);
+                    }
                     (0x4, m_register, 0x2, 0xa) => {
                         println!("[{:4x}] lds R{} -> PR", self.pc, m_register);
 
                         self.memory.pr = self.memory.read_register(m_register);
+                    }
+                    (0x3, n_register, m_register, 0x0) => {
+                        println!("[{:4x}] CMP/EQ R{} = R{}", self.pc, n_register, m_register);
+
+                        if self.memory.read_register(n_register)
+                            == self.memory.read_register(m_register)
+                        {
+                            self.memory.t = 1;
+                        } else {
+                            self.memory.t = 0;
+                        }
+                    }
+                    (0xa, d_1, d_2, d_3) => {
+                        let raw_disp: u16 = 0x0fff
+                            & (((0x000f & d_1 as u16) << 8)
+                                | (((0x000f & d_2 as u16) << 4) | (0x000f & d_3 as u16)));
+                        let (disp, sub) = if (raw_disp & 0x800) == 0 {
+                            ((0x00000fff & (raw_disp as u32)) * 2, false)
+                        } else {
+                            let tmp = raw_disp as u32;
+                            (((tmp - 1) ^ 0x00000fff) * 2, true)
+                        };
+
+                        println!("[{:4x}] BRA", self.pc);
+                        if !sub {
+                            println!("[{:4x}] Jumping Forward: {:x}", self.pc, disp);
+                            self.pc = self.pc + 2 + disp;
+                        } else {
+                            println!("[{:4x}] Jumping Backwards: {:x}", self.pc, disp);
+                            self.pc = self.pc + 2 - disp;
+                        }
+                    }
+                    (0x8, 0x9, d_1, d_2) => {
+                        println!("[{:4x}] BT", self.pc);
+
+                        let raw_disp = (d_1 << 4) | (d_2 & 0x0f);
+                        let disp = if (raw_disp & 0x80) == 0 {
+                            0x000000ff & raw_disp as u32
+                        } else {
+                            unimplemented!("Cannot jump back yet");
+                        } * 2;
+
+                        if self.memory.t == 1 {
+                            println!("[{:4x}] Jumping: {:x}", self.pc, disp);
+                            self.pc = self.pc + 2 + disp;
+                        }
                     }
                     _ => {
                         println!(

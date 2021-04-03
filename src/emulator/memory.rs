@@ -1,6 +1,7 @@
 pub struct Memory {
     registers: [u32; 16],
     pub pr: u32,
+    pub t: u8,
     heap: Vec<u32>,
 }
 impl Memory {
@@ -8,6 +9,7 @@ impl Memory {
         Self {
             registers: [0; 16],
             pr: 0,
+            t: 0,
             heap: Vec::new(),
         }
     }

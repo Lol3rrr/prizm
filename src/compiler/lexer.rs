@@ -3,6 +3,7 @@ pub enum Keyword {
     Integer,
     Void,
     Return,
+    While,
 }
 
 #[derive(Debug, PartialEq)]
@@ -23,7 +24,7 @@ pub enum Token {
     Constant(Value),
     Asterisk,
     And,
-    Assignment,
+    Equals,
     Plus,
     Minus,
 }
@@ -33,7 +34,7 @@ fn parse_word(word: &str, tokens: &mut Vec<Token>) {
         "int" => tokens.push(Token::Keyword(Keyword::Integer)),
         "void" => tokens.push(Token::Keyword(Keyword::Void)),
         "return" => tokens.push(Token::Keyword(Keyword::Return)),
-        "=" => tokens.push(Token::Assignment),
+        "while" => tokens.push(Token::Keyword(Keyword::While)),
         "+" => tokens.push(Token::Plus),
         "-" => tokens.push(Token::Minus),
         _ if word.len() > 0 => {
@@ -58,11 +59,12 @@ fn parse_seperator(seperator: &str, tokens: &mut Vec<Token>) {
         "*" => tokens.push(Token::Asterisk),
         "&" => tokens.push(Token::And),
         "," => tokens.push(Token::Comma),
+        "=" => tokens.push(Token::Equals),
         _ => {}
     };
 }
 
-const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', '&', ','];
+const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', '&', ',', '='];
 
 pub fn tokenize(content: &str) -> Vec<Token> {
     let mut result = Vec::new();
@@ -114,7 +116,7 @@ mod tests {
         let expected = vec![
             Token::Keyword(Keyword::Integer),
             Token::Identifier("test".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Semicolon,
         ];
@@ -157,7 +159,7 @@ mod tests {
             Token::Keyword(Keyword::Integer),
             Token::Asterisk,
             Token::Identifier("test".to_string()),
-            Token::Assignment,
+            Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Semicolon,
         ];

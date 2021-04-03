@@ -40,6 +40,16 @@ pub fn generate(
                 result
             }
         },
+        ir::Expression::Constant(ir::Value::I32(val)) => {
+            if *val == 0 {
+                // XOR R0 with itself
+                return vec![0x20, 0x0a];
+            }
+
+            unimplemented!("Generating i32 constant other than 0: {}", *val);
+
+            Vec::new()
+        }
         _ => {
             println!("Unknown Expression: {:?}", exp);
             Vec::new()
