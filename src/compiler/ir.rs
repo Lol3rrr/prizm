@@ -2,12 +2,14 @@
 pub enum DataType {
     Void,
     I32,
+    U32,
     Ptr(Box<DataType>),
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
     I32(i32),
+    U32(u32),
 }
 
 #[derive(Debug, PartialEq)]

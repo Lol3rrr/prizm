@@ -106,7 +106,7 @@ impl File {
         // **
         let file_size = self.file_size.to_be_bytes();
         // 0x000E
-        result[0x000e] = (file_size[3] ^ 0xff) - 0x41;
+        result[0x000e] = (file_size[3] ^ 0xff).wrapping_sub(0x41);
         // 0x000F
         result[0x000f] = 0xfe;
         // 0x0010

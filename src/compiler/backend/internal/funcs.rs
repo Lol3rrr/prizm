@@ -1,4 +1,4 @@
-use super::{immediate_val, stack};
+use super::immediate_val;
 
 /// This overwrites R2 and R3
 ///
@@ -8,11 +8,9 @@ use super::{immediate_val, stack};
 pub fn call(address: u32) -> Vec<u8> {
     let mut result = Vec::new();
 
-    // Save previous PR
-    // Move PR into R3
-    result.push(0x03);
-    result.push(0x2a);
-    result.append(&mut stack::push_register(0));
+    // Save previous PR, push value onto stack
+    result.push(0x4f);
+    result.push(0x22);
 
     // Store the Target address into r2
     result.append(&mut immediate_val::store_32bit_r(2, address));
@@ -25,11 +23,9 @@ pub fn call(address: u32) -> Vec<u8> {
     result.push(0x00);
     result.push(0x09);
 
-    // Load previous PR into R3
-    result.append(&mut stack::pop_register(3));
-    // Move R3 into PR
-    result.push(0x43);
-    result.push(0x2a);
+    // Restore previous PR from stack
+    result.push(0x4f);
+    result.push(0x26);
 
     result
 }

@@ -47,12 +47,6 @@ fn fixup_main_jump(result: &mut Vec<u8>, main_offset: u32) {
     result[13] = target_bytes[3];
 }
 
-fn print_instructions(instr: &[u8]) {
-    for window in instr.chunks(2) {
-        println!("{:02x}{:02x}", window[0], window[1]);
-    }
-}
-
 // TODO
 pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
     let mut result = Vec::new();
@@ -72,7 +66,6 @@ pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
 
     fixup_main_jump(&mut result, *offsets.get("main").unwrap());
 
-    print_instructions(&result);
     println!("Offsets: {:?}", offsets);
 
     result

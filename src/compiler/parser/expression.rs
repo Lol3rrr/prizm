@@ -17,6 +17,7 @@ where
             let left_side = match first {
                 Token::Constant(constant_value) => match constant_value {
                     Value::Integer(value) => ir::Expression::Constant(ir::Value::I32(*value)),
+                    Value::UInteger(value) => ir::Expression::Constant(ir::Value::U32(*value)),
                 },
                 Token::Identifier(name) => match iter.peek() {
                     Some(Token::OpenParan) => {

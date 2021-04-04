@@ -16,6 +16,7 @@ where
             let first_part = match tmp {
                 Keyword::Integer => ir::DataType::I32,
                 Keyword::Void => ir::DataType::Void,
+                Keyword::UInteger => ir::DataType::U32,
                 _ => return None,
             };
 

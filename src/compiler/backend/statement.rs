@@ -1,4 +1,4 @@
-use super::{expression, internal, Functions, Offsets};
+use super::{expression, function::VarOffset, internal, Functions, Offsets};
 use crate::compiler::ir::{self, Statement};
 
 pub fn generate(
@@ -6,43 +6,84 @@ pub fn generate(
     pre_asm: &mut Vec<u8>,
     offsets: &mut Offsets,
     functions: &Functions,
+    vars: &VarOffset,
 ) -> Vec<u8> {
     match statement {
         Statement::DerefAssignment(name, exp) => {
             let mut result = Vec::new();
 
-            println!("Deref-Assign: {} = {:?}", name, exp);
-
             // Evaluate the expression first
-            result.append(&mut expression::generate(exp, pre_asm, offsets, functions));
+            result.append(&mut expression::generate(
+                exp, pre_asm, offsets, functions, vars,
+            ));
 
-            // TODO
-            // Actually assign the resulting value to the variable
+            // Load FP into R1
+            result.push(0x61);
+            result.push(0xe3);
+            // Add the Offset to R1 to get address of local variable into R1
+            let offset = *vars.get(name).unwrap();
+            result.push(0x71);
+            result.push(offset);
+
+            // Load the Address that is stored in the variable into R1
+            result.push(0x61);
+            result.push(0x12);
+
+            // MOV.L R0 -> (R1)
+            result.push(0x21);
+            result.push(0x02);
+
+            result
+        }
+        Statement::Assignment(name, exp) => {
+            let mut result = Vec::new();
+
+            result.append(&mut expression::generate(
+                exp, pre_asm, offsets, functions, vars,
+            ));
+
+            // Load FP into R1
+            result.push(0x61);
+            result.push(0xe3);
+            // Add the Offset to R1 to get address of local variable into R1
+            let offset = *vars.get(name).unwrap();
+            result.push(0x71);
+            result.push(offset);
+
+            // MOV.L R0 -> (R1)
+            result.push(0x21);
+            result.push(0x02);
 
             result
         }
         Statement::Return(exp) => {
             let mut result = Vec::new();
 
-            result.append(&mut expression::generate(exp, pre_asm, offsets, functions));
+            result.append(&mut expression::generate(
+                exp, pre_asm, offsets, functions, vars,
+            ));
 
             result.append(&mut internal::funcs::ret());
 
             result
         }
-        Statement::SingleExpression(exp) => expression::generate(exp, pre_asm, offsets, functions),
+        Statement::SingleExpression(exp) => {
+            expression::generate(exp, pre_asm, offsets, functions, vars)
+        }
         Statement::WhileLoop(left, comp, right, inner) => {
             let mut result = Vec::new();
 
             // Generate the Left-Side of the Expression
-            result.append(&mut expression::generate(left, pre_asm, offsets, functions));
+            result.append(&mut expression::generate(
+                left, pre_asm, offsets, functions, vars,
+            ));
 
             // Push the first result onto the stack
             result.append(&mut internal::stack::push_register(0));
 
             // Generate right side of the expression
             result.append(&mut expression::generate(
-                right, pre_asm, offsets, functions,
+                right, pre_asm, offsets, functions, vars,
             ));
 
             // Pop left side from the stack again
@@ -63,10 +104,9 @@ pub fn generate(
             let mut generated_inner = Vec::new();
             // Generates the inner code
             for tmp in inner.iter() {
-                generated_inner.append(&mut generate(tmp, pre_asm, offsets, functions));
+                generated_inner.append(&mut generate(tmp, pre_asm, offsets, functions, vars));
             }
 
-            // TODO
             // Generate the actual jump for when the condition is not true anymore
             // Branch over the jump to the end if the condition is true
             result.push(0x89);
@@ -113,6 +153,7 @@ pub fn generate(
 
             result
         }
+        ir::Statement::Declaration(_, _) => Vec::new(),
         _ => {
             println!("Unexpected: {:?}", statement);
             Vec::new()

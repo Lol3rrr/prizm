@@ -1,6 +1,7 @@
 #[derive(Debug, PartialEq)]
 pub enum Keyword {
     Integer,
+    UInteger,
     Void,
     Return,
     While,
@@ -9,6 +10,7 @@ pub enum Keyword {
 #[derive(Debug, PartialEq)]
 pub enum Value {
     Integer(i32),
+    UInteger(u32),
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,6 +34,7 @@ pub enum Token {
 fn parse_word(word: &str, tokens: &mut Vec<Token>) {
     match word {
         "int" => tokens.push(Token::Keyword(Keyword::Integer)),
+        "uint" => tokens.push(Token::Keyword(Keyword::UInteger)),
         "void" => tokens.push(Token::Keyword(Keyword::Void)),
         "return" => tokens.push(Token::Keyword(Keyword::Return)),
         "while" => tokens.push(Token::Keyword(Keyword::While)),
@@ -40,6 +43,10 @@ fn parse_word(word: &str, tokens: &mut Vec<Token>) {
         _ if word.len() > 0 => {
             if let Ok(int_value) = word.parse() {
                 tokens.push(Token::Constant(Value::Integer(int_value)));
+                return;
+            }
+            if let Ok(uint_value) = word.parse() {
+                tokens.push(Token::Constant(Value::UInteger(uint_value)));
                 return;
             }
 
