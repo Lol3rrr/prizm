@@ -107,7 +107,6 @@ pub fn generate(
                 generated_inner.append(&mut generate(tmp, pre_asm, offsets, functions, vars));
             }
 
-            // Generate the actual jump for when the condition is not true anymore
             // Branch over the jump to the end if the condition is true
             result.push(0x89);
             result.push(0x02);
@@ -133,7 +132,7 @@ pub fn generate(
             result.push(0x09);
 
             // The jump back to the top
-            let raw_back_disp = (generated_inner.len() + result.len() + 4) as u32;
+            let raw_back_disp = (generated_inner.len() + result.len() + 2) as u32;
             if raw_back_disp > 4096 {
                 unimplemented!(
                     "Cannot support loops where the jump back is more than 4096 Bytes: {}",
