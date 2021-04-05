@@ -2,6 +2,7 @@
 pub enum Operand {
     Register(u8),
     AtRegister(u8),
+    Displacement8(u8),
 }
 
 /// These Instructions are in the Intel Format
@@ -29,6 +30,7 @@ pub enum Instruction {
     Shll8(u8),
     Shll16(u8),
     Shlr(u8),
+    Literal(u8, u8),
 }
 
 impl Instruction {
@@ -44,6 +46,9 @@ impl Instruction {
             }
             Instruction::MovL(Operand::AtRegister(target), Operand::Register(source)) => {
                 [0x20 | (target & 0x0f), 0x02 | ((source << 4) & 0xf0)]
+            }
+            Instruction::MovL(Operand::Register(target), Operand::Displacement8(disp)) => {
+                [0xd0 | (target & 0x0f), *disp]
             }
             Instruction::Push(register) => [0x2f, 0x06 | ((register << 4) & 0xf0)],
             Instruction::PushPR => [0x4f, 0x22],
@@ -66,6 +71,7 @@ impl Instruction {
             Instruction::Shll8(target) => [0x40 | (target & 0x0f), 0x18],
             Instruction::Shll16(target) => [0x40 | (target & 0x0f), 0x28],
             Instruction::Shlr(target) => [0x40 | (target & 0x0f), 0x01],
+            Instruction::Literal(first, second) => [*first, *second],
             _ => unimplemented!("Combination {:?} is not yet implemented", self),
         }
     }

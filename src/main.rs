@@ -60,13 +60,35 @@ fn main() {
 
                 let mut em_cmd = cli_in.split(" ");
                 match em_cmd.next() {
-                    Some("run") => while em.emulate_single() {},
+                    Some("run") => loop {
+                        if let Err(e) = em.emulate_single() {
+                            println!("Error: {:?}", e);
+                            break;
+                        }
+                    },
                     Some("step") => {
-                        em.emulate_single();
+                        if let Err(e) = em.emulate_single() {
+                            println!("Error: {:?}", e);
+                        }
                     }
                     Some("info") => {
                         match em_cmd.next() {
                             Some("reg") => em.print_registers(),
+                            Some("instr") => {
+                                let current_instr = em.get_instr(0).unwrap();
+                                let next_instr = em.get_instr(2).unwrap();
+                                println!(
+                                    "Current Instruction: x{:X}{:X}{:X}{:X}",
+                                    current_instr.0,
+                                    current_instr.1,
+                                    current_instr.2,
+                                    current_instr.3
+                                );
+                                println!(
+                                    "Next Instruction: x{:X}{:X}{:X}{:X}",
+                                    next_instr.0, next_instr.1, next_instr.2, next_instr.3
+                                );
+                            }
                             _ => println!("Unknown"),
                         };
                     }

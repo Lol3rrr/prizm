@@ -112,7 +112,7 @@ pub fn generate(
             }
 
             // Branch over the jump to the end if the condition is true
-            result.push(asm::Instruction::BT(2));
+            result.push(asm::Instruction::BT(1));
             // NO Nop needed because its not a delayed branch
 
             // Branch to the end of the loop

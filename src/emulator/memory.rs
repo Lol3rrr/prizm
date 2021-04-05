@@ -1,7 +1,7 @@
 pub struct Memory {
     registers: [u32; 16],
     pub pr: u32,
-    pub t: u8,
+    pub t: bool,
     heap: Vec<u8>,
 }
 impl Memory {
@@ -9,14 +9,14 @@ impl Memory {
         Self {
             registers: [0; 16],
             pr: 0,
-            t: 0,
+            t: false,
             heap: Vec::new(),
         }
     }
     pub fn print_registers(&self) {
         print!("Registers:");
         for reg in self.registers.iter() {
-            print!(" x{:x},", reg);
+            print!(" x{:X},", reg);
         }
         println!();
     }
