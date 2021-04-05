@@ -25,10 +25,16 @@ impl Emulator {
         }
     }
 
-    fn handle_jump(&mut self, destination: u32) {
+    pub fn print_registers(&self) {
+        self.memory.print_registers();
+    }
+
+    fn handle_jump(&mut self, destination: u32, delayed: bool) {
         let prev_pc = self.pc;
-        self.pc += 2;
-        self.emulate_single();
+        if delayed {
+            self.pc += 2;
+            self.emulate_single();
+        }
 
         let n_pc = match destination {
             _ if destination == 0x80020070 => {
@@ -47,7 +53,7 @@ impl Emulator {
                 self.memory.print_registers();
                 prev_pc + 2
             }
-            _ => destination - 2,
+            _ => destination,
         };
         self.pc = n_pc;
     }
@@ -71,7 +77,7 @@ impl Emulator {
                 match (nibble_1, nibble_2, nibble_3, nibble_4) {
                     (0xe, register, value_p1, value_p2) => {
                         println!(
-                            "[{:4x}] Moving {:x}{:x} -> R{}",
+                            "[{:4x}] Moving x{:x}{:x} -> R{}",
                             self.pc, value_p1, value_p2, register
                         );
 
@@ -79,6 +85,7 @@ impl Emulator {
                         // Sign extension
                         let value = (value_p1 << 4) + value_p2;
                         self.memory.write_register(register, value as u32);
+                        self.pc += 2;
                     }
                     (0x4, register, 0x2, 0x8) => {
                         println!(
@@ -88,6 +95,7 @@ impl Emulator {
 
                         let data = self.memory.read_register(register);
                         self.memory.write_register(register, data << 16);
+                        self.pc += 2;
                     }
                     (0x4, register, 0x1, 0x8) => {
                         println!(
@@ -97,6 +105,7 @@ impl Emulator {
 
                         let data = self.memory.read_register(register);
                         self.memory.write_register(register, data << 8);
+                        self.pc += 2;
                     }
                     (0x4, register, 0x0, 0x8) => {
                         println!(
@@ -106,6 +115,7 @@ impl Emulator {
 
                         let data = self.memory.read_register(register);
                         self.memory.write_register(register, data << 2);
+                        self.pc += 2;
                     }
                     (0x4, n_register, 0x0, 0x0) => {
                         println!(
@@ -115,6 +125,7 @@ impl Emulator {
 
                         self.memory
                             .write_register(n_register, self.memory.read_register(n_register) << 1);
+                        self.pc += 2;
                     }
                     (0x4, n_register, 0x0, 0x1) => {
                         println!(
@@ -123,6 +134,7 @@ impl Emulator {
                         );
                         self.memory
                             .write_register(n_register, self.memory.read_register(n_register) >> 1);
+                        self.pc += 2;
                     }
                     (0x7, register, value_p1, value_p2) => {
                         let value = ((value_p1 << 4) + value_p2) as u32;
@@ -143,21 +155,24 @@ impl Emulator {
                         };
 
                         self.memory.write_register(register, n_value);
+                        self.pc += 2
                     }
                     (0x4, register, 0x2, 0xb) => {
                         println!("[{:4x}] Jumping to value in R{}", self.pc, register);
 
                         let destination = self.memory.read_register(register);
-                        println!("[{:4x}] Jump-Destination: {:08x}", self.pc, destination);
+                        println!("[{:4x}] Jump-Destination: x{:08x}", self.pc, destination);
 
-                        self.handle_jump(destination);
+                        self.handle_jump(destination, true);
                     }
                     (0x0, 0x0, 0x0, 0x9) => {
                         println!("[{:4x}] NOP", self.pc);
+                        self.pc += 2;
                     }
                     (0x0, register, 0x2, 0xa) => {
                         println!("[{:4x}] STS PR -> R{}", self.pc, register);
                         self.memory.write_register(register, self.memory.pr);
+                        self.pc += 2;
                     }
                     (0x4, n_register, 0x2, 0x2) => {
                         println!(
@@ -169,6 +184,7 @@ impl Emulator {
                             .write_register(n_register, self.memory.read_register(n_register) - 4);
                         self.memory
                             .write_long(self.memory.read_register(n_register), self.memory.pr);
+                        self.pc += 2;
                     }
                     (0x2, n_register, m_register, 0x2) => {
                         println!(
@@ -179,6 +195,7 @@ impl Emulator {
                             self.memory.read_register(n_register),
                             self.memory.read_register(m_register),
                         );
+                        self.pc += 2;
                     }
                     (0x2, n_register, m_register, 0x6) => {
                         println!(
@@ -191,6 +208,7 @@ impl Emulator {
                         self.memory.write_register(n_register, n);
                         self.memory
                             .write_long(n, self.memory.read_register(m_register));
+                        self.pc += 2;
                     }
                     (0x2, n_register, m_register, 0xa) => {
                         println!(
@@ -203,6 +221,7 @@ impl Emulator {
                             self.memory.read_register(n_register)
                                 ^ self.memory.read_register(m_register),
                         );
+                        self.pc += 2;
                     }
                     (0x4, m_register, 0x0, 0xb) => {
                         println!("[{:4x}] JSR R{} -> PC", self.pc, m_register);
@@ -210,20 +229,21 @@ impl Emulator {
                         let destination = self.memory.read_register(m_register);
                         println!("[{:4x}] JSR-Destination: {:08x}", self.pc, destination);
                         self.memory.pr = self.pc + 4;
-                        self.handle_jump(destination);
+                        self.handle_jump(destination, true);
                     }
                     (0x0, 0x0, 0x0, 0xb) => {
                         println!("[{:4x}] RTS", self.pc);
 
                         let destination = self.memory.pr;
                         println!("[{:4x}] Returning to {:08x}", self.pc, destination);
-                        self.handle_jump(destination);
+                        self.handle_jump(destination, true);
                     }
                     (0x6, n_register, m_register, 0x3) => {
                         println!("[{:4x}] R{} -> R{}", self.pc, m_register, n_register);
 
                         self.memory
                             .write_register(n_register, self.memory.read_register(m_register));
+                        self.pc += 2;
                     }
                     (0x6, n_register, m_register, 0x2) => {
                         println!(
@@ -233,6 +253,7 @@ impl Emulator {
 
                         let value = self.memory.read_long(self.memory.read_register(m_register));
                         self.memory.write_register(n_register, value);
+                        self.pc += 2;
                     }
                     (0x6, n_register, m_register, 0x6) => {
                         println!(
@@ -244,11 +265,13 @@ impl Emulator {
                         self.memory.write_register(n_register, value);
                         self.memory
                             .write_register(m_register, self.memory.read_register(m_register) + 4);
+                        self.pc += 2;
                     }
                     (0x4, m_register, 0x2, 0xa) => {
                         println!("[{:4x}] lds R{} -> PR", self.pc, m_register);
 
                         self.memory.pr = self.memory.read_register(m_register);
+                        self.pc += 2;
                     }
                     (0x3, n_register, m_register, 0x0) => {
                         println!("[{:4x}] CMP/EQ R{} = R{}", self.pc, n_register, m_register);
@@ -260,6 +283,7 @@ impl Emulator {
                         } else {
                             self.memory.t = 0;
                         }
+                        self.pc += 2;
                     }
                     (0x3, n_register, m_register, 0x2) => {
                         println!(
@@ -274,6 +298,7 @@ impl Emulator {
                         } else {
                             self.memory.t = 0;
                         }
+                        self.pc += 2;
                     }
                     (0x3, n_register, m_register, 0x6) => {
                         println!(
@@ -288,6 +313,7 @@ impl Emulator {
                         } else {
                             self.memory.t = 0;
                         }
+                        self.pc += 2;
                     }
                     (0xa, d_1, d_2, d_3) => {
                         let raw_disp: u16 = 0x0fff
@@ -302,11 +328,11 @@ impl Emulator {
 
                         println!("[{:4x}] BRA", self.pc);
                         if !sub {
-                            println!("[{:4x}] Jumping Forward: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 2 + disp);
+                            println!("[{:4x}] Jumping Forward: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 + disp, true);
                         } else {
-                            println!("[{:4x}] Jumping Backwards: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 2 - disp);
+                            println!("[{:4x}] Jumping Backwards: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 - disp, true);
                         }
                     }
                     (0xb, d_1, d_2, d_3) => {
@@ -323,11 +349,11 @@ impl Emulator {
                         println!("[{:4x}] BSR", self.pc);
                         self.memory.pr = self.pc + 4;
                         if !sub {
-                            println!("[{:4x}] Jumping Forward: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 2 + disp);
+                            println!("[{:4x}] Jumping Forward: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 + disp, true);
                         } else {
-                            println!("[{:4x}] Jumping Backwards: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 2 - disp);
+                            println!("[{:4x}] Jumping Backwards: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 - disp, true);
                         }
                     }
                     (0x8, 0x9, d_1, d_2) => {
@@ -341,8 +367,10 @@ impl Emulator {
                         } * 2;
 
                         if self.memory.t == 1 {
-                            println!("[{:4x}] Jumping: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 2 + disp);
+                            println!("[{:4x}] Jumping: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 + disp, false);
+                        } else {
+                            self.pc += 2;
                         }
                     }
                     (0x8, 0xb, d_1, d_2) => {
@@ -356,8 +384,10 @@ impl Emulator {
                         } * 2;
 
                         if self.memory.t == 0 {
-                            println!("[{:4x}] Jumping: {:x}", self.pc, disp);
-                            self.handle_jump(self.pc + 4 + disp);
+                            println!("[{:4x}] Jumping: x{:x}", self.pc, disp);
+                            self.handle_jump(self.pc + 4 + disp, false);
+                        } else {
+                            self.pc += 2;
                         }
                     }
                     (0xd, n_register, d_1, d_2) => {
@@ -370,6 +400,7 @@ impl Emulator {
                         println!("[{:4x}] Reading from Address: x{:x}", self.pc, addr);
 
                         self.memory.write_register(n_register, data);
+                        self.pc += 2;
                     }
                     _ => {
                         println!(
@@ -380,7 +411,6 @@ impl Emulator {
                     }
                 };
 
-                self.pc += 2;
                 true
             }
             _ => false,

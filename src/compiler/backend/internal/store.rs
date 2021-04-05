@@ -32,7 +32,7 @@ pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
         RAW_MASK >> 3,
     ];
 
-    let mut result: Vec<asm::Instruction> = Vec::new();
+    let mut result: Vec<asm::Instruction> = vec![asm::Instruction::Xor(register, register)];
     for (index, mask) in MASKS.iter().enumerate() {
         let shift = 32_usize.saturating_sub((index + 1) * 7);
 

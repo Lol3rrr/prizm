@@ -1,8 +1,10 @@
 int main() {
 	int local_test = 0;
+	int var = 0;
 
 	while (0 == 0) {
 		__syscall(3755, &local_test, 0, 0, 0);
+		var = 13;
 	}
 
 	return 0;

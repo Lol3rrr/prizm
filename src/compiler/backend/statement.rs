@@ -26,15 +26,15 @@ pub fn generate(
             let offset = *vars.get(name).unwrap();
             result.push(asm::Instruction::AddI(1, offset));
 
-            // Load the Address that is stored in the variable into R1
+            // Load the Address that is stored in the variable into R2
             result.push(asm::Instruction::MovL(
-                asm::Operand::Register(1),
+                asm::Operand::Register(2),
                 asm::Operand::AtRegister(1),
             ));
 
-            // MOV.L R0 -> (R1)
+            // MOV.L R0 -> (R2)
             result.push(asm::Instruction::MovL(
-                asm::Operand::AtRegister(1),
+                asm::Operand::AtRegister(2),
                 asm::Operand::Register(0),
             ));
 
@@ -48,7 +48,7 @@ pub fn generate(
             ));
 
             // Load FP into R1
-            result.push(asm::Instruction::Mov(1, 15));
+            result.push(asm::Instruction::Mov(1, 14));
             // Add the Offset to R1 to get address of local variable into R1
             let offset = *vars.get(name).unwrap();
             result.push(asm::Instruction::AddI(1, offset));
@@ -129,7 +129,7 @@ pub fn generate(
             result.push(asm::Instruction::Nop);
 
             // The jump back to the top
-            let raw_back_disp = (generated_inner.len() * 2 + result.len() * 2 + 2) as u32;
+            let raw_back_disp = (generated_inner.len() * 2 + result.len() * 2 + 4) as u32;
             if raw_back_disp > 4096 {
                 unimplemented!(
                     "Cannot support loops where the jump back is more than 4096 Bytes: {}",

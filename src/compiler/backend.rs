@@ -61,10 +61,6 @@ pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
 
     fixup_main_jump(&mut result, *offsets.get("main").unwrap());
 
-    for tmp in result.iter() {
-        println!("{:?}", tmp);
-    }
-
     let mut final_result = Vec::new();
     for instr in result {
         let tmp = instr.to_byte();

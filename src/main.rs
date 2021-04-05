@@ -1,3 +1,5 @@
+use std::io::{stdin, stdout, Write};
+
 use casio::{compiler, emulator, g3a};
 
 use chrono::Utc;
@@ -34,14 +36,45 @@ fn main() {
                 .code(compiled_code);
             let compiled_file = compiled_file_builder.finish();
 
-            std::fs::write("./test.g3a", compiled_file.serialize("/test.g3a")).unwrap();
+            let output_path = std::path::Path::new(&output);
+            let output_name = output_path.file_name().unwrap();
+            std::fs::write(
+                output_path,
+                compiled_file.serialize(&format!("/{}", output_name.to_str().unwrap())),
+            )
+            .unwrap();
         }
         Rizm::Emulate { input } => {
             let raw_file = std::fs::read(input).unwrap();
             let file = g3a::File::parse(&raw_file).unwrap();
 
             let mut em = emulator::Emulator::new(file);
-            while em.emulate_single() {}
+            loop {
+                let mut cli_in = String::new();
+                stdout().write(&[b'>']).expect("Writing to Stdout");
+                stdout().flush().expect("Flushing StdOut");
+                stdin()
+                    .read_line(&mut cli_in)
+                    .expect("Could not get string");
+                cli_in.remove(cli_in.len() - 1);
+
+                let mut em_cmd = cli_in.split(" ");
+                match em_cmd.next() {
+                    Some("run") => while em.emulate_single() {},
+                    Some("step") => {
+                        em.emulate_single();
+                    }
+                    Some("info") => {
+                        match em_cmd.next() {
+                            Some("reg") => em.print_registers(),
+                            _ => println!("Unknown"),
+                        };
+                    }
+                    _ => {
+                        println!("Unknown");
+                    }
+                };
+            }
         }
     };
 }
