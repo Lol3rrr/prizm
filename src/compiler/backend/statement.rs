@@ -1,13 +1,16 @@
 use super::{expression, function::VarOffset, internal, Functions, Offsets};
-use crate::compiler::ir::{self, Statement};
+use crate::{
+    asm,
+    compiler::ir::{self, Statement},
+};
 
 pub fn generate(
     statement: &ir::Statement,
-    pre_asm: &mut Vec<u8>,
+    pre_asm: &mut Vec<asm::Instruction>,
     offsets: &mut Offsets,
     functions: &Functions,
     vars: &VarOffset,
-) -> Vec<u8> {
+) -> Vec<asm::Instruction> {
     match statement {
         Statement::DerefAssignment(name, exp) => {
             let mut result = Vec::new();
@@ -18,20 +21,22 @@ pub fn generate(
             ));
 
             // Load FP into R1
-            result.push(0x61);
-            result.push(0xe3);
+            result.push(asm::Instruction::Mov(1, 14));
             // Add the Offset to R1 to get address of local variable into R1
             let offset = *vars.get(name).unwrap();
-            result.push(0x71);
-            result.push(offset);
+            result.push(asm::Instruction::AddI(1, offset));
 
             // Load the Address that is stored in the variable into R1
-            result.push(0x61);
-            result.push(0x12);
+            result.push(asm::Instruction::MovL(
+                asm::Operand::Register(1),
+                asm::Operand::AtRegister(1),
+            ));
 
             // MOV.L R0 -> (R1)
-            result.push(0x21);
-            result.push(0x02);
+            result.push(asm::Instruction::MovL(
+                asm::Operand::AtRegister(1),
+                asm::Operand::Register(0),
+            ));
 
             result
         }
@@ -43,16 +48,16 @@ pub fn generate(
             ));
 
             // Load FP into R1
-            result.push(0x61);
-            result.push(0xe3);
+            result.push(asm::Instruction::Mov(1, 15));
             // Add the Offset to R1 to get address of local variable into R1
             let offset = *vars.get(name).unwrap();
-            result.push(0x71);
-            result.push(offset);
+            result.push(asm::Instruction::AddI(1, offset));
 
             // MOV.L R0 -> (R1)
-            result.push(0x21);
-            result.push(0x02);
+            result.push(asm::Instruction::MovL(
+                asm::Operand::AtRegister(1),
+                asm::Operand::Register(0),
+            ));
 
             result
         }
@@ -79,7 +84,7 @@ pub fn generate(
             ));
 
             // Push the first result onto the stack
-            result.append(&mut internal::stack::push_register(0));
+            result.push(asm::Instruction::Push(0));
 
             // Generate right side of the expression
             result.append(&mut expression::generate(
@@ -87,7 +92,7 @@ pub fn generate(
             ));
 
             // Pop left side from the stack again
-            result.append(&mut internal::stack::pop_register(1));
+            result.push(asm::Instruction::Pop(1));
 
             // R0 -> Right Side
             // R1 -> Left Side
@@ -96,8 +101,7 @@ pub fn generate(
 
             match comp {
                 ir::Comparison::Equal => {
-                    result.push(0x30 | (n_register & 0x0f));
-                    result.push(0x00 | ((m_register & 0x0f) << 4));
+                    result.push(asm::Instruction::CmpEq(n_register, m_register));
                 }
             };
 
@@ -108,14 +112,11 @@ pub fn generate(
             }
 
             // Branch over the jump to the end if the condition is true
-            result.push(0x89);
-            result.push(0x02);
-            // Noop
-            result.push(0x00);
-            result.push(0x09);
+            result.push(asm::Instruction::BT(2));
+            // NO Nop needed because its not a delayed branch
 
             // Branch to the end of the loop
-            let raw_disp: u32 = generated_inner.len() as u32 + 4;
+            let raw_disp: u32 = generated_inner.len() as u32 * 2 + 4;
             if raw_disp > 4094 {
                 unimplemented!(
                     "Cannot support loops where the jump is more than 4094 Bytes: {}",
@@ -123,16 +124,12 @@ pub fn generate(
                 );
             }
             let disp: u16 = (raw_disp / 2) as u16;
-            let disp_bytes = disp.to_be_bytes();
-            result.push(0xa0 | (disp_bytes[0] & 0x0f));
-            result.push(disp_bytes[1]);
-
+            result.push(asm::Instruction::BRA(disp));
             // Noop
-            result.push(0x00);
-            result.push(0x09);
+            result.push(asm::Instruction::Nop);
 
             // The jump back to the top
-            let raw_back_disp = (generated_inner.len() + result.len() + 2) as u32;
+            let raw_back_disp = (generated_inner.len() * 2 + result.len() * 2 + 2) as u32;
             if raw_back_disp > 4096 {
                 unimplemented!(
                     "Cannot support loops where the jump back is more than 4096 Bytes: {}",
@@ -140,22 +137,14 @@ pub fn generate(
                 );
             }
             let back_disp = (((raw_back_disp / 2) ^ 0xffffffff) + 0x01) as u16; // In Two's complement
-            let back_disp_bytes = back_disp.to_be_bytes();
-            generated_inner.push(0xa0 | (back_disp_bytes[0] & 0x0f));
-            generated_inner.push(back_disp_bytes[1]);
-
+            generated_inner.push(asm::Instruction::BRA(back_disp));
             // Noop
-            generated_inner.push(0x00);
-            generated_inner.push(0x09);
+            generated_inner.push(asm::Instruction::Nop);
 
             result.append(&mut generated_inner);
 
             result
         }
         ir::Statement::Declaration(_, _) => Vec::new(),
-        _ => {
-            println!("Unexpected: {:?}", statement);
-            Vec::new()
-        }
     }
 }

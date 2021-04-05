@@ -1,19 +1,22 @@
+use crate::asm;
+
 use super::internal;
 
-pub fn generate(call_id: u16) -> Vec<u8> {
-    let mut result = Vec::new();
+pub fn generate(call_id: u16) -> Vec<asm::Instruction> {
+    let mut result: Vec<asm::Instruction> = Vec::new();
     result.append(&mut internal::store::store_u16(0, call_id));
 
     // Store the Jump address for systemcalls into r2
-    result.extend_from_slice(&[0xe2, 0x80, 0x42, 0x18, 0x72, 0x02, 0x42, 0x28, 0x72, 0x70]);
+    result.push(asm::Instruction::MovI(2, 0x80));
+    result.push(asm::Instruction::Shll8(2));
+    result.push(asm::Instruction::AddI(2, 0x02));
+    result.push(asm::Instruction::Shll16(2));
+    result.push(asm::Instruction::AddI(2, 0x70));
 
     // Jump
-    result.push(0x42);
-    result.push(0x2b);
-
+    result.push(asm::Instruction::Jmp(2));
     // Noop after jump
-    result.push(0x00);
-    result.push(0x09);
+    result.push(asm::Instruction::Nop);
 
     result
 }
@@ -26,9 +29,20 @@ mod tests {
     fn simple_get_key() {
         let call_id = 0x0eab;
 
-        let expected = vec![
-            0xe0, 0x0e, 0x40, 0x18, 0x70, 0xab, 0xe2, 0x80, 0x42, 0x18, 0x72, 0x02, 0x42, 0x28,
-            0x72, 0x70, 0x42, 0x2b, 0x00, 0x09,
+        let expected: Vec<asm::Instruction> = vec![
+            asm::Instruction::MovI(0, 7),
+            asm::Instruction::Shll8(0),
+            asm::Instruction::Shlr(0),
+            asm::Instruction::AddI(0, 42),
+            asm::Instruction::Shll2(0),
+            asm::Instruction::AddI(0, 3),
+            asm::Instruction::MovI(2, 128),
+            asm::Instruction::Shll8(2),
+            asm::Instruction::AddI(2, 2),
+            asm::Instruction::Shll16(2),
+            asm::Instruction::AddI(2, 112),
+            asm::Instruction::Jmp(2),
+            asm::Instruction::Nop,
         ];
 
         assert_eq!(expected, generate(call_id));

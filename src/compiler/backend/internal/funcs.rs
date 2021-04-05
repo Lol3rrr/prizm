@@ -1,45 +1,39 @@
-use super::immediate_val;
+use crate::asm;
+
+use super::store;
 
 /// This overwrites R2 and R3
 ///
 /// Pushes the current PR onto the stack
 /// jumps to the address in a sub-routine
 /// and then restores the PR again from the stack
-pub fn call(address: u32) -> Vec<u8> {
+pub fn call(address: u32) -> Vec<asm::Instruction> {
     let mut result = Vec::new();
 
     // Save previous PR, push value onto stack
-    result.push(0x4f);
-    result.push(0x22);
+    result.push(asm::Instruction::PushPR);
 
     // Store the Target address into r2
-    result.append(&mut immediate_val::store_32bit_r(2, address));
+    result.append(&mut store::store_u32(2, address));
 
     // JSR - Jump-Sub-Routine in r2
-    result.push(0x42);
-    result.push(0x0b);
-
+    result.push(asm::Instruction::Jsr(2));
     // Noop
-    result.push(0x00);
-    result.push(0x09);
+    result.push(asm::Instruction::Nop);
 
     // Restore previous PR from stack
-    result.push(0x4f);
-    result.push(0x26);
+    result.push(asm::Instruction::PopPR);
 
     result
 }
 
-pub fn ret() -> Vec<u8> {
+pub fn ret() -> Vec<asm::Instruction> {
     let mut result = Vec::new();
 
     // RTS - Return-from-subroutine
-    result.push(0x00);
-    result.push(0x0b);
-
+    result.push(asm::Instruction::Rts);
     // Noop
-    result.push(0x00);
-    result.push(0x09);
+    result.push(asm::Instruction::Nop);
 
     result
 }
@@ -50,9 +44,32 @@ mod tests {
 
     #[test]
     fn calling() {
-        let expected: Vec<u8> = vec![
-            3, 42, 47, 6, 226, 18, 66, 24, 114, 52, 66, 24, 114, 86, 66, 24, 114, 120, 66, 11, 0,
-            9, 99, 246, 67, 42,
+        let expected: Vec<asm::Instruction> = vec![
+            asm::Instruction::PushPR,
+            asm::Instruction::AddI(2, 9),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll(2),
+            asm::Instruction::AddI(2, 13),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll(2),
+            asm::Instruction::AddI(2, 10),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll(2),
+            asm::Instruction::AddI(2, 103),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll2(2),
+            asm::Instruction::Shll(2),
+            asm::Instruction::AddI(2, 8),
+            asm::Instruction::Jsr(2),
+            asm::Instruction::Nop,
+            asm::Instruction::PopPR,
         ];
 
         assert_eq!(expected, call(0x12345678));
@@ -60,7 +77,7 @@ mod tests {
 
     #[test]
     fn returning() {
-        let expected: Vec<u8> = vec![0x00, 0x0b, 0x00, 0x09];
+        let expected: Vec<asm::Instruction> = vec![asm::Instruction::Rts, asm::Instruction::Nop];
 
         assert_eq!(expected, ret());
     }

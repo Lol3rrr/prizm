@@ -1,4 +1,4 @@
-use crate::compiler::ir;
+use crate::{asm, compiler::ir};
 
 use super::{
     function::{self, VarOffset},
@@ -8,11 +8,11 @@ use super::{
 // TODO
 pub fn generate(
     exp: &ir::Expression,
-    pre_asm: &mut Vec<u8>,
+    pre_asm: &mut Vec<asm::Instruction>,
     offsets: &mut Offsets,
     functions: &Functions,
     vars: &VarOffset,
-) -> Vec<u8> {
+) -> Vec<asm::Instruction> {
     match exp {
         ir::Expression::Call(name, exps) => match name.as_str() {
             "__syscall" => {
@@ -35,7 +35,7 @@ pub fn generate(
                         functions,
                         vars,
                     ));
-                    result.extend_from_slice(&[0x63 + i as u8, 0x03]);
+                    result.push(asm::Instruction::Mov(3 + i as u8, 0));
                 }
 
                 result.append(&mut syscall::generate(syscall_id as u16));
@@ -68,7 +68,7 @@ pub fn generate(
         ir::Expression::Constant(ir::Value::I32(val)) => {
             if *val == 0 {
                 // XOR R0 with itself
-                return vec![0x20, 0x0a];
+                return vec![asm::Instruction::Xor(0, 0)];
             }
 
             internal::store::store_u32(0, *val as u32)
@@ -76,7 +76,7 @@ pub fn generate(
         ir::Expression::Constant(ir::Value::U32(val)) => {
             if *val == 0 {
                 // XOR R0 with itself
-                return vec![0x20, 0x0a];
+                return vec![asm::Instruction::Xor(0, 0)];
             }
 
             internal::store::store_u32(0, *val)
@@ -86,13 +86,11 @@ pub fn generate(
             let mut result = Vec::new();
 
             // Load FP into R0 (mov R14 -> R0)
-            result.push(0x60);
-            result.push(0xe3);
+            result.push(asm::Instruction::Mov(0, 14));
 
             // Add the Var-Offset to R0
             let offset = *vars.get(var_name).unwrap();
-            result.push(0x70);
-            result.push(offset);
+            result.push(asm::Instruction::AddI(0, offset));
 
             result
         }
