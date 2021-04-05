@@ -53,7 +53,7 @@ impl Instruction {
                 [0x20 | (target & 0x0f), 0x0a | ((other << 4) & 0xf0)]
             }
             Instruction::AddI(target, value) => [0x70 | (target & 0x0f), *value],
-            Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), 0x00 | ((right << 4) & 0xf0)],
+            Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), ((right << 4) & 0xf0)],
             Instruction::BT(disp) => [0x89, *disp],
             Instruction::BRA(disp) => {
                 [0xa0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0x00ff) as u8]

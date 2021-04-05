@@ -29,7 +29,7 @@ impl FileBuilder {
                 german: name.clone(),
                 french: name.clone(),
                 portuguese: name.clone(),
-                chinese: name.clone(),
+                chinese: name,
                 eactivity: false,
                 version: "01.00.0000".to_string(),
                 date: date_string,
@@ -39,39 +39,39 @@ impl FileBuilder {
         }
     }
 
-    pub fn internal_name<'a>(&'a mut self, n_name: String) -> &'a mut Self {
+    pub fn internal_name(&mut self, n_name: String) -> &mut Self {
         self.internal_name = Some(n_name);
         self
     }
-    pub fn short_name<'a>(&'a mut self, n_short: String) -> &'a mut Self {
+    pub fn short_name(&mut self, n_short: String) -> &mut Self {
         self.short_name = Some(n_short);
         self
     }
-    pub fn selected_image<'a>(&'a mut self, n_image: image::Image) -> &'a mut Self {
+    pub fn selected_image(&mut self, n_image: image::Image) -> &mut Self {
         self.selected = Some(n_image);
         self
     }
-    pub fn unselected_image<'a>(&'a mut self, n_image: image::Image) -> &'a mut Self {
+    pub fn unselected_image(&mut self, n_image: image::Image) -> &mut Self {
         self.unselected = Some(n_image);
         self
     }
-    pub fn selected_image_path<'a>(&'a mut self, path: &str) -> &'a mut Self {
+    pub fn selected_image_path(&mut self, path: &str) -> &mut Self {
         self.selected = image::Image::from_file(path);
         self
     }
-    pub fn unselected_image_path<'a>(&'a mut self, path: &str) -> &'a mut Self {
+    pub fn unselected_image_path(&mut self, path: &str) -> &mut Self {
         self.unselected = image::Image::from_file(path);
         self
     }
-    pub fn code<'a>(&'a mut self, n_code: Vec<u8>) -> &'a mut Self {
+    pub fn code(&mut self, n_code: Vec<u8>) -> &mut Self {
         self.code = n_code;
         self
     }
 
     pub fn finish(self) -> File {
-        let eactivity = self.eactivity.unwrap_or(eactivity::EActivity::empty());
-        let selected = self.selected.unwrap_or(image::Image::empty());
-        let unselected = self.unselected.unwrap_or(image::Image::empty());
+        let eactivity = self.eactivity.unwrap_or_else(eactivity::EActivity::empty);
+        let selected = self.selected.unwrap_or_else(image::Image::empty);
+        let unselected = self.unselected.unwrap_or_else(image::Image::empty);
 
         let file_size = 0x7000 + 0x4 + self.code.len() as u32;
 

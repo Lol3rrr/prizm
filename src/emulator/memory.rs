@@ -18,7 +18,7 @@ impl Memory {
         for reg in self.registers.iter() {
             print!(" x{:x},", reg);
         }
-        print!("\n");
+        println!();
     }
 
     pub fn write_register(&mut self, reg: u8, value: u32) {
@@ -64,7 +64,7 @@ impl Memory {
         ((*byte_1 as u32) << 24)
             | ((*byte_2 as u32) << 16)
             | ((*byte_3 as u32) << 8)
-            | ((*byte_4 as u32) << 0)
+            | (*byte_4 as u32)
     }
 
     pub fn read_word(&mut self, addr: u32) -> u16 {
@@ -74,7 +74,7 @@ impl Memory {
         let byte_1 = self.heap.get(addr_u).unwrap();
         let byte_2 = self.heap.get(addr_u + 1).unwrap();
 
-        ((*byte_1 as u16) << 8) | ((*byte_2 as u16) << 0)
+        ((*byte_1 as u16) << 8) | (*byte_2 as u16)
     }
 
     pub fn write_byte(&mut self, addr: u32, byte: u8) {

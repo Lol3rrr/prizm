@@ -30,7 +30,7 @@ impl Localized {
         let chinese = String::from_utf8(raw_chinese.to_vec()).unwrap();
 
         let raw_eactivity = content[0x012b];
-        let eactivity = if raw_eactivity == 0 { false } else { true };
+        let eactivity = raw_eactivity != 0;
 
         let raw_version = &content[0x0130..0x013c];
         let raw_date = &content[0x013c..0x014a];

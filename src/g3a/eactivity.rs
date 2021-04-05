@@ -66,7 +66,7 @@ impl EActivity {
         write_string(&mut result[0xd8..], &self.english);
         write_string(&mut result[0xfc..], &self.english);
 
-        &result[0x120..].copy_from_slice(&self.icon);
+        result[0x120..].copy_from_slice(&self.icon);
 
         result
     }

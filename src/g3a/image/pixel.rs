@@ -26,9 +26,9 @@ impl Pixel {
         let mut out = [0, 0];
 
         out[0] = self.red << 3;
-        out[0] = out[0] | (0b00000111 & (self.green >> 3));
+        out[0] |= 0b00000111 & (self.green >> 3);
         out[1] = 0b00011111 & self.blue;
-        out[1] = out[1] | (0b11100000 & (self.green << 5));
+        out[1] |= 0b11100000 & (self.green << 5);
 
         out
     }

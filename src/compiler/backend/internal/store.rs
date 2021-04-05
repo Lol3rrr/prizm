@@ -2,9 +2,9 @@ use crate::asm;
 
 pub fn store_u16(register: u8, value: u16) -> Vec<asm::Instruction> {
     const RAW_MASK: u16 = 0x7f;
-    const F_MASK: u16 = 0x0000 | (RAW_MASK << 9);
-    const S_MASK: u16 = 0x0000 | (RAW_MASK << 2);
-    const T_MASK: u16 = 0x0000 | (RAW_MASK >> 5);
+    const F_MASK: u16 = RAW_MASK << 9;
+    const S_MASK: u16 = RAW_MASK << 2;
+    const T_MASK: u16 = RAW_MASK >> 5;
 
     vec![
         // Store first 7 bit
@@ -23,7 +23,7 @@ pub fn store_u16(register: u8, value: u16) -> Vec<asm::Instruction> {
 }
 
 pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
-    const RAW_MASK: u32 = 0x7f as u32;
+    const RAW_MASK: u32 = 0x7f_u32;
     const MASKS: [u32; 5] = [
         RAW_MASK << 25,
         RAW_MASK << 18,
@@ -34,7 +34,7 @@ pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
 
     let mut result: Vec<asm::Instruction> = Vec::new();
     for (index, mask) in MASKS.iter().enumerate() {
-        let shift = (32 as usize).saturating_sub((index + 1) * 7);
+        let shift = 32_usize.saturating_sub((index + 1) * 7);
 
         result.push(asm::Instruction::AddI(
             register,

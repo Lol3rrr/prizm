@@ -85,10 +85,6 @@ impl Statement {
     pub fn pretty_print(&self, padding_length: u8) {
         let padding = gen_padding(padding_length);
 
-        match self {
-            _ => {
-                println!("{}{:?}", padding, self);
-            }
-        };
+        println!("{}{:?}", padding, self);
     }
 }

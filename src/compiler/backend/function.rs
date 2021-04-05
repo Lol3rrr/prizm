@@ -44,15 +44,15 @@ pub fn generate(
 
     let (var_offsets, stack_offset) = get_variable_offset(&func.3);
 
-    let mut tmp = Vec::new();
-    // Store the Previous FP(r14)/SP(r15) on the Stack
-    tmp.push(asm::Instruction::Push(14));
-    tmp.push(asm::Instruction::Push(15));
-
-    // Move the Stack "stack_offset" bytes up (r15 - offset)
-    tmp.push(asm::Instruction::AddI(15, (stack_offset ^ 0xff) + 1));
-    // Move the new StackPtr(r15) into FP(r14) as base offset
-    tmp.push(asm::Instruction::Mov(14, 15));
+    let mut tmp = vec![
+        // Store the Previous FP(r14)/SP(r15) on the Stack
+        asm::Instruction::Push(14),
+        asm::Instruction::Push(15),
+        // Move the Stack "stack_offset" bytes up (r15 - offset)
+        asm::Instruction::AddI(15, (stack_offset ^ 0xff) + 1),
+        // Move the new StackPtr(r15) into FP(r14) as base offset
+        asm::Instruction::Mov(14, 15),
+    ];
 
     for statement in func.3.iter() {
         tmp.append(&mut statement::generate(

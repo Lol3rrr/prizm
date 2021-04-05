@@ -83,16 +83,14 @@ pub fn generate(
         }
 
         ir::Expression::Reference(var_name) => {
-            let mut result = Vec::new();
-
-            // Load FP into R0 (mov R14 -> R0)
-            result.push(asm::Instruction::Mov(0, 14));
-
-            // Add the Var-Offset to R0
             let offset = *vars.get(var_name).unwrap();
-            result.push(asm::Instruction::AddI(0, offset));
 
-            result
+            vec![
+                // Load FP into R0 (mov R14 -> R0)
+                asm::Instruction::Mov(0, 14),
+                // Add the Var-Offset to R0
+                asm::Instruction::AddI(0, offset),
+            ]
         }
         _ => {
             println!("Unknown Expression: {:?}", exp);

@@ -183,7 +183,7 @@ pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
     let mut functions = Vec::new();
 
     let mut iter = tokens.iter().peekable();
-    while let Some(_) = iter.peek() {
+    while iter.peek().is_some() {
         if let Some(func) = parse_function(&mut iter) {
             functions.push(func);
         }

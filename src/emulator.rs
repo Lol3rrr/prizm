@@ -27,7 +27,7 @@ impl Emulator {
 
     fn handle_jump(&mut self, destination: u32) {
         let prev_pc = self.pc;
-        self.pc = self.pc + 2;
+        self.pc += 2;
         self.emulate_single();
 
         let n_pc = match destination {

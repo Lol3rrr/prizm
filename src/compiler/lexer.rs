@@ -40,7 +40,7 @@ fn parse_word(word: &str, tokens: &mut Vec<Token>) {
         "while" => tokens.push(Token::Keyword(Keyword::While)),
         "+" => tokens.push(Token::Plus),
         "-" => tokens.push(Token::Minus),
-        _ if word.len() > 0 => {
+        _ if !word.is_empty() => {
             if let Ok(int_value) = word.parse() {
                 tokens.push(Token::Constant(Value::Integer(int_value)));
                 return;

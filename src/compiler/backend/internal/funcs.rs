@@ -8,10 +8,9 @@ use super::store;
 /// jumps to the address in a sub-routine
 /// and then restores the PR again from the stack
 pub fn call(address: u32) -> Vec<asm::Instruction> {
-    let mut result = Vec::new();
-
-    // Save previous PR, push value onto stack
-    result.push(asm::Instruction::PushPR);
+    let mut result = vec![
+        asm::Instruction::PushPR, // Save previous PR, push value onto stack
+    ];
 
     // Store the Target address into r2
     result.append(&mut store::store_u32(2, address));
@@ -28,14 +27,7 @@ pub fn call(address: u32) -> Vec<asm::Instruction> {
 }
 
 pub fn ret() -> Vec<asm::Instruction> {
-    let mut result = Vec::new();
-
-    // RTS - Return-from-subroutine
-    result.push(asm::Instruction::Rts);
-    // Noop
-    result.push(asm::Instruction::Nop);
-
-    result
+    vec![asm::Instruction::Rts, asm::Instruction::Nop]
 }
 
 #[cfg(test)]

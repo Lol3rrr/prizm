@@ -26,7 +26,7 @@ pub struct File {
 impl File {
     pub fn parse(content: &[u8]) -> Result<File, ParseError> {
         let identifier = &content[0..14];
-        if identifier != &HEADER_IDENTIFIER {
+        if identifier != HEADER_IDENTIFIER {
             return Err(ParseError::WrongIdentifier);
         }
 
@@ -46,7 +46,7 @@ impl File {
         let raw_checksum = &content[0x0020..0x0024];
         let checksum = u32::from_be_bytes(raw_checksum.try_into().unwrap());
 
-        if &content[0x0024..0x0026] != &[0x01, 0x01] {
+        if content[0x0024..0x0026] != [0x01, 0x01] {
             return Err(ParseError::WrongFormat);
         }
 
@@ -99,7 +99,7 @@ impl File {
     pub fn serialize(&self, filename: &str) -> Vec<u8> {
         let mut result = vec![0; 0x7000];
 
-        &result[0..0x000e].copy_from_slice(&HEADER_IDENTIFIER);
+        result[0..0x000e].copy_from_slice(&HEADER_IDENTIFIER);
 
         // **
         // General Header stuff
@@ -118,29 +118,29 @@ impl File {
         result[0x0014] = (file_size[3] ^ 0xff).wrapping_sub(0xb8);
         // 0x0016
         // TODO
-        &result[0x0016..0x0016 + 4].copy_from_slice(&(0 as u32).to_be_bytes());
+        result[0x0016..0x0016 + 4].copy_from_slice(&0_u32.to_be_bytes());
         // 0x0024
         result[0x0024] = 0x01;
         result[0x0025] = 0x01;
         // 0x002e
-        &result[0x002e..0x002e + 4]
+        result[0x002e..0x002e + 4]
             .copy_from_slice(&(self.executable_code.len() as u32).to_be_bytes());
         // 0x0040
         util::write_string(&mut result[0x0040..0x005c], &self.short_name);
         // 0x005c
-        &result[0x005c..0x005c + 4].copy_from_slice(&self.file_size.to_be_bytes());
+        result[0x005c..0x005c + 4].copy_from_slice(&self.file_size.to_be_bytes());
         // 0x0060
         util::write_string(&mut result[0x0060..0x006b], &self.internal_name);
 
         // **
         // Unselected image
         // **
-        &result[0x1000..=0x3dff].copy_from_slice(&self.unselected_image.serialize());
+        result[0x1000..=0x3dff].copy_from_slice(&self.unselected_image.serialize());
 
         // **
         // Selected image
         // **
-        &result[0x4000..=0x6dff].copy_from_slice(&self.selected_image.serialize());
+        result[0x4000..=0x6dff].copy_from_slice(&self.selected_image.serialize());
 
         // **
         // Localization Stuff
@@ -150,7 +150,7 @@ impl File {
         // **
         // EActivity
         // **
-        &result[0x0170..0x0590].copy_from_slice(&self.eactivity.serialize());
+        result[0x0170..0x0590].copy_from_slice(&self.eactivity.serialize());
 
         util::write_string(&mut result[0x0ebc..0x1000], filename);
 
