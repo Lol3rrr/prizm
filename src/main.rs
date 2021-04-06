@@ -1,4 +1,7 @@
-use std::io::{stdin, stdout, Write};
+use std::{
+    collections::HashSet,
+    io::{stdin, stdout, Write},
+};
 
 use casio::{compiler, emulator, g3a};
 
@@ -48,6 +51,8 @@ fn main() {
             let raw_file = std::fs::read(input).unwrap();
             let file = g3a::File::parse(&raw_file).unwrap();
 
+            let mut breakpoints: HashSet<u32> = HashSet::new();
+
             let mut em = emulator::Emulator::new(file);
             loop {
                 let mut cli_in = String::new();
@@ -61,12 +66,36 @@ fn main() {
                 let mut em_cmd = cli_in.split(" ");
                 match em_cmd.next() {
                     Some("run") => loop {
+                        if breakpoints.get(&em.pc()).is_some() {
+                            println!("Reached Breakpoint");
+                            break;
+                        }
                         if let Err(e) = em.emulate_single() {
                             println!("Error: {:?}", e);
                             break;
                         }
                     },
+                    Some("b") => {
+                        match em_cmd.next() {
+                            Some(raw_br) => {
+                                let br = if raw_br.starts_with("0x") {
+                                    let tmp = raw_br.strip_prefix("0x").unwrap();
+                                    u32::from_str_radix(tmp, 16).unwrap()
+                                } else {
+                                    0
+                                };
+
+                                breakpoints.insert(br);
+                                println!("Breakpoint: x{:X}", br);
+                            }
+                            None => println!("Expected-Breakpoint"),
+                        };
+                    }
                     Some("step") => {
+                        if breakpoints.get(&em.pc()).is_some() {
+                            println!("Reached Breakpoint");
+                            continue;
+                        }
                         if let Err(e) = em.emulate_single() {
                             println!("Error: {:?}", e);
                         }
@@ -81,6 +110,9 @@ fn main() {
                                 println!("Next Instruction: {:?}", next_instr);
                             }
                             Some("code") => em.print_code(None, None),
+                            Some("memory") => {
+                                println!("Printing Memory");
+                            }
                             _ => println!("Unknown"),
                         };
                     }

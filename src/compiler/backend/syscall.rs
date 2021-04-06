@@ -13,10 +13,14 @@ pub fn generate(call_id: u16) -> Vec<asm::Instruction> {
     result.push(asm::Instruction::Shll16(2));
     result.push(asm::Instruction::AddI(2, 0x70));
 
+    result.push(asm::Instruction::PushPR);
+
     // Jump
-    result.push(asm::Instruction::Jmp(2));
+    result.push(asm::Instruction::Jsr(2));
     // Noop after jump
     result.push(asm::Instruction::Nop);
+
+    result.push(asm::Instruction::PopPR);
 
     result
 }

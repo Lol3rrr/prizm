@@ -39,6 +39,10 @@ impl Emulator {
         }
     }
 
+    pub fn pc(&self) -> u32 {
+        self.pc
+    }
+
     pub fn print_code(&mut self, p_start: Option<usize>, p_end: Option<usize>) {
         let start = p_start.unwrap_or(0);
         let end = p_end.unwrap_or(self.file.executable_code.len() - 1);
@@ -68,7 +72,6 @@ impl Emulator {
     }
 
     fn handle_jump(&mut self, destination: u32, delayed: bool) {
-        let prev_pc = self.pc;
         if delayed {
             self.pc += 2;
             self.emulate_single().unwrap();
@@ -88,7 +91,7 @@ impl Emulator {
                         println!("Unknown Syscall: {:x}", syscall);
                     }
                 };
-                prev_pc + 4
+                self.memory.pr
             }
             _ => destination,
         };
@@ -210,6 +213,11 @@ impl Emulator {
                     self.pc, n_register
                 );
 
+                match self.fetch_instruction_type(self.pc + 2) {
+                    InstructionType::Branch => return Err(Exception::SlotIllegal),
+                    _ => {}
+                };
+
                 let raw_immediate: u32 = 0x000000FF & (raw_disp) as u32;
                 let addr = (self.pc & 0xFFFFFFFC) + 4 + (raw_immediate * 4);
                 let data = self.memory.read_long(addr);
@@ -280,6 +288,10 @@ impl Emulator {
             // Branch Instructions
             asm::Instruction::Jmp(register) => {
                 println!("[{:4x}] Jumping to value in R{}", self.pc, register);
+                match self.fetch_instruction_type(self.pc + 2) {
+                    InstructionType::Branch => return Err(Exception::SlotIllegal),
+                    _ => {}
+                };
 
                 let destination = self.memory.read_register(register);
                 println!("[{:4x}] Jump-Destination: x{:08x}", self.pc, destination);
