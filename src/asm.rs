@@ -91,7 +91,7 @@ impl Instruction {
         }
     }
 
-    pub fn parse(raw: u16) -> Option<Self> {
+    pub fn parse(raw: u16) -> Self {
         let bytes = raw.to_be_bytes();
         let nibbles = [
             (bytes[0] & 0xf0) >> 4,
@@ -101,51 +101,50 @@ impl Instruction {
         ];
 
         match (nibbles[0], nibbles[1], nibbles[2], nibbles[3]) {
-            (0x0, 0x0, 0x0, 0x9) => Some(Self::Nop),
+            (0x0, 0x0, 0x0, 0x9) => Self::Nop,
 
-            (0x6, n_reg, m_reg, 0x3) => Some(Self::Mov(n_reg, m_reg)),
-            (0xe, n_reg, val_1, val_2) => Some(Self::MovI(n_reg, (val_1 << 4) | val_2)),
-            (0xd, n_reg, d_1, d_2) => Some(Self::MovL(
+            (0x6, n_reg, m_reg, 0x3) => Self::Mov(n_reg, m_reg),
+            (0xe, n_reg, val_1, val_2) => Self::MovI(n_reg, (val_1 << 4) | val_2),
+            (0xd, n_reg, d_1, d_2) => Self::MovL(
                 Operand::Register(n_reg),
                 Operand::Displacement8((d_1 << 4) | d_2),
-            )),
-            (0x6, n_reg, m_reg, 0x2) => Some(Self::MovL(
-                Operand::Register(n_reg),
-                Operand::AtRegister(m_reg),
-            )),
-            (0x2, n_reg, m_reg, 0x2) => Some(Self::MovL(
-                Operand::AtRegister(n_reg),
-                Operand::Register(m_reg),
-            )),
-            (0x6, n_reg, m_reg, 0x6) => Some(Self::PopOther(n_reg, m_reg)),
-            (0x2, n_reg, m_reg, 0x6) => Some(Self::PushOther(m_reg, n_reg)),
-            (0x4, n_reg, 0x2, 0x2) => Some(Self::PushPROther(n_reg)),
+            ),
+            (0x6, n_reg, m_reg, 0x2) => {
+                Self::MovL(Operand::Register(n_reg), Operand::AtRegister(m_reg))
+            }
+            (0x2, n_reg, m_reg, 0x2) => {
+                Self::MovL(Operand::AtRegister(n_reg), Operand::Register(m_reg))
+            }
+            (0x6, n_reg, m_reg, 0x6) => Self::PopOther(n_reg, m_reg),
+            (0x2, n_reg, m_reg, 0x6) => Self::PushOther(m_reg, n_reg),
+            (0x4, n_reg, 0x2, 0x2) => Self::PushPROther(n_reg),
 
-            (0x8, 0xb, d_1, d_2) => Some(Self::BF((d_1 << 4) | d_2)),
-            (0x8, 0x9, d_1, d_2) => Some(Self::BT((d_1 << 4) | d_2)),
-            (0xa, d_1, d_2, d_3) => Some(Self::BRA(
-                ((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16),
-            )),
-            (0xb, d_1, d_2, d_3) => Some(Self::BSR(
-                ((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16),
-            )),
-            (0x4, m_reg, 0x2, 0xb) => Some(Self::Jmp(m_reg)),
-            (0x4, m_reg, 0x0, 0xb) => Some(Self::Jsr(m_reg)),
-            (0x0, 0x0, 0x0, 0xb) => Some(Self::Rts),
+            (0x8, 0xb, d_1, d_2) => Self::BF((d_1 << 4) | d_2),
+            (0x8, 0x9, d_1, d_2) => Self::BT((d_1 << 4) | d_2),
+            (0xa, d_1, d_2, d_3) => {
+                Self::BRA(((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16))
+            }
+            (0xb, d_1, d_2, d_3) => {
+                Self::BSR(((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16))
+            }
+            (0x4, m_reg, 0x2, 0xb) => Self::Jmp(m_reg),
+            (0x4, m_reg, 0x0, 0xb) => Self::Jsr(m_reg),
+            (0x0, 0x0, 0x0, 0xb) => Self::Rts,
 
-            (0x3, n_reg, m_reg, 0x0) => Some(Self::CmpEq(n_reg, m_reg)),
-            (0x3, n_reg, m_reg, 0x2) => Some(Self::CmpHs(n_reg, m_reg)),
-            (0x3, n_reg, m_reg, 0x6) => Some(Self::CmpHi(n_reg, m_reg)),
+            (0x3, n_reg, m_reg, 0x0) => Self::CmpEq(n_reg, m_reg),
+            (0x3, n_reg, m_reg, 0x2) => Self::CmpHs(n_reg, m_reg),
+            (0x3, n_reg, m_reg, 0x6) => Self::CmpHi(n_reg, m_reg),
 
-            (0x7, n_reg, val_1, val_2) => Some(Self::AddI(n_reg, (val_1 << 4) | val_2)),
+            (0x7, n_reg, val_1, val_2) => Self::AddI(n_reg, (val_1 << 4) | val_2),
 
-            (0x4, n_reg, 0x0, 0x0) => Some(Self::Shll(n_reg)),
-            (0x4, n_reg, 0x0, 0x8) => Some(Self::Shll2(n_reg)),
-            (0x4, n_reg, 0x1, 0x8) => Some(Self::Shll8(n_reg)),
-            (0x4, n_reg, 0x2, 0x8) => Some(Self::Shll16(n_reg)),
-            (0x4, n_reg, 0x0, 0x1) => Some(Self::Shlr(n_reg)),
-            (0x2, n_reg, m_reg, 0xa) => Some(Self::Xor(n_reg, m_reg)),
-            _ => None,
+            (0x4, n_reg, 0x0, 0x0) => Self::Shll(n_reg),
+            (0x4, n_reg, 0x0, 0x8) => Self::Shll2(n_reg),
+            (0x4, n_reg, 0x1, 0x8) => Self::Shll8(n_reg),
+            (0x4, n_reg, 0x2, 0x8) => Self::Shll16(n_reg),
+            (0x4, n_reg, 0x0, 0x1) => Self::Shlr(n_reg),
+            (0x2, n_reg, m_reg, 0xa) => Self::Xor(n_reg, m_reg),
+
+            (p1, p2, p3, p4) => Self::Literal((p1 << 4) | p2, (p3 << 4) | p4),
         }
     }
 }

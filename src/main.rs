@@ -75,11 +75,12 @@ fn main() {
                         match em_cmd.next() {
                             Some("reg") => em.print_registers(),
                             Some("instr") => {
-                                let current_instr = em.get_instr(0).unwrap();
-                                let next_instr = em.get_instr(2).unwrap();
+                                let current_instr = em.get_instr(0);
+                                let next_instr = em.get_instr(2);
                                 println!("Current Instruction: {:?}", current_instr,);
                                 println!("Next Instruction: {:?}", next_instr);
                             }
+                            Some("code") => em.print_code(None, None),
                             _ => println!("Unknown"),
                         };
                     }
