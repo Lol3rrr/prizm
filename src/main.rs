@@ -77,17 +77,8 @@ fn main() {
                             Some("instr") => {
                                 let current_instr = em.get_instr(0).unwrap();
                                 let next_instr = em.get_instr(2).unwrap();
-                                println!(
-                                    "Current Instruction: x{:X}{:X}{:X}{:X}",
-                                    current_instr.0,
-                                    current_instr.1,
-                                    current_instr.2,
-                                    current_instr.3
-                                );
-                                println!(
-                                    "Next Instruction: x{:X}{:X}{:X}{:X}",
-                                    next_instr.0, next_instr.1, next_instr.2, next_instr.3
-                                );
+                                println!("Current Instruction: {:?}", current_instr,);
+                                println!("Next Instruction: {:?}", next_instr);
                             }
                             _ => println!("Unknown"),
                         };
