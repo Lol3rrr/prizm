@@ -1,3 +1,4 @@
+mod assembler;
 mod backend;
 mod ir;
 mod lexer;
@@ -11,5 +12,7 @@ pub fn compile(content: &str) -> Vec<u8> {
 
     let ir = parser::parse(&tokens);
 
-    backend::generate(ir)
+    let instr = backend::generate(ir);
+
+    assembler::assemble(instr)
 }

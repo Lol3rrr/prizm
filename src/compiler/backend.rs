@@ -36,14 +36,8 @@ fn fixup_main_jump(result: &mut Vec<asm::Instruction>, main_offset: u32) {
     result[5] = asm::Instruction::Literal(target_bytes[2], target_bytes[3]);
 }
 
-fn print_instructions(instr: &[asm::Instruction]) {
-    for (index, tmp) in instr.iter().enumerate() {
-        println!("[{:08x}] {:?}", index * 2, tmp);
-    }
-}
-
 // TODO
-pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
+pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<asm::Instruction> {
     let mut result = Vec::new();
 
     // The Jump to main
@@ -61,14 +55,5 @@ pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<u8> {
 
     fixup_main_jump(&mut result, *offsets.get("main").unwrap());
 
-    print_instructions(&result);
-
-    let mut final_result = Vec::new();
-    for instr in result {
-        let tmp = instr.to_byte();
-        final_result.push(tmp[0]);
-        final_result.push(tmp[1]);
-    }
-
-    final_result
+    result
 }

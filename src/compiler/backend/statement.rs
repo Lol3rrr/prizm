@@ -78,6 +78,8 @@ pub fn generate(
         Statement::WhileLoop(left, comp, right, inner) => {
             let mut result = Vec::new();
 
+            result.push(asm::Instruction::Label("WHILE_START".to_owned()));
+
             // Generate the Left-Side of the Expression
             result.append(&mut expression::generate(
                 left, pre_asm, offsets, functions, vars,
@@ -116,32 +118,17 @@ pub fn generate(
             // NO Nop needed because its not a delayed branch
 
             // Branch to the end of the loop
-            let raw_disp: u32 = generated_inner.len() as u32 * 2 + 4;
-            if raw_disp > 4094 {
-                unimplemented!(
-                    "Cannot support loops where the jump is more than 4094 Bytes: {}",
-                    raw_disp
-                );
-            }
-            let disp: u16 = (raw_disp / 2) as u16;
-            result.push(asm::Instruction::BRA(disp));
+            result.push(asm::Instruction::JmpLabel("WHILE_END".to_owned()));
             // Noop
             result.push(asm::Instruction::Nop);
 
             // The jump back to the top
-            let raw_back_disp = (generated_inner.len() * 2 + result.len() * 2 + 4) as u32;
-            if raw_back_disp > 4096 {
-                unimplemented!(
-                    "Cannot support loops where the jump back is more than 4096 Bytes: {}",
-                    raw_back_disp
-                );
-            }
-            let back_disp = (((raw_back_disp / 2) ^ 0xffffffff) + 0x01) as u16; // In Two's complement
-            generated_inner.push(asm::Instruction::BRA(back_disp));
+            generated_inner.push(asm::Instruction::JmpLabel("WHILE_START".to_owned()));
             // Noop
             generated_inner.push(asm::Instruction::Nop);
 
             result.append(&mut generated_inner);
+            result.push(asm::Instruction::Label("WHILE_END".to_owned()));
 
             result
         }

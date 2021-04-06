@@ -33,11 +33,13 @@ pub enum Instruction {
     CmpHs(u8, u8),
     /// First > Second (unsigned)
     CmpHi(u8, u8),
+    Label(String),
     BT(u8),
     BF(u8),
     BRA(u16),
     BSR(u16),
     Jmp(u8),
+    JmpLabel(String),
     Jsr(u8),
     Rts,
     Shll(u8),
