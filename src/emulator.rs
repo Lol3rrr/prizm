@@ -164,6 +164,21 @@ impl Emulator {
                 self.memory.write_register(n_register, value);
                 self.pc += 2;
             }
+            asm::Instruction::MovB(
+                asm::Operand::AtRegister(n_register),
+                asm::Operand::Register(m_register),
+            ) => {
+                println!(
+                    "[{:4x}] MOV.B R{} -> (R{})",
+                    self.pc, m_register, n_register
+                );
+
+                self.memory.write_byte(
+                    self.memory.read_register(n_register),
+                    self.memory.read_register(m_register) as u8,
+                );
+                self.pc += 2;
+            }
             asm::Instruction::MovL(
                 asm::Operand::AtRegister(n_register),
                 asm::Operand::Register(m_register),
@@ -202,6 +217,27 @@ impl Emulator {
                 self.memory.write_register(n_register, n);
                 self.memory
                     .write_long(n, self.memory.read_register(m_register));
+                self.pc += 2;
+            }
+            asm::Instruction::MovW(
+                asm::Operand::Register(n_register),
+                asm::Operand::Displacement8(raw_disp),
+            ) => {
+                println!(
+                    "[{:4x}] MOV.W (disp*2 + PC + 4) -> sign extension -> R{}",
+                    self.pc, n_register
+                );
+
+                match self.fetch_instruction_type(self.pc + 2) {
+                    InstructionType::Branch => return Err(Exception::SlotIllegal),
+                    _ => {}
+                };
+
+                let raw_immediate: u32 = 0x000000FF & (raw_disp as u32);
+                let addr = self.pc + 4 + (raw_immediate * 2);
+                let data = self.memory.read_word(addr);
+
+                self.memory.write_register(n_register, data as u32);
                 self.pc += 2;
             }
             asm::Instruction::MovL(
@@ -269,8 +305,45 @@ impl Emulator {
                 self.memory.write_register(n_register, value >> 1);
                 self.pc += 2;
             }
+            asm::Instruction::Shlr2(register) => {
+                println!("[{:4x}] SHLR2 2 >> R{} -> R{}", self.pc, register, register);
+
+                let data = self.memory.read_register(register);
+                self.memory.write_register(register, data >> 2);
+                self.pc += 2;
+            }
+            asm::Instruction::Shlr8(register) => {
+                println!("[{:4x}] SHLR8 8 >> R{} -> R{}", self.pc, register, register);
+
+                let data = self.memory.read_register(register);
+                self.memory.write_register(register, data >> 8);
+                self.pc += 2;
+            }
+            asm::Instruction::Shlr16(register) => {
+                println!(
+                    "[{:4x}] SHLR16 16 >> R{} -> R{}",
+                    self.pc, register, register
+                );
+
+                let data = self.memory.read_register(register);
+                self.memory.write_register(register, data >> 16);
+                self.pc += 2;
+            }
 
             // Arithmetic
+            asm::Instruction::Add(target, other) => {
+                println!(
+                    "[{:4x}] Add R{} + R{} -> R{}",
+                    self.pc, target, other, target
+                );
+
+                let target_value = self.memory.read_register(target);
+                let other_value = self.memory.read_register(other);
+                let final_value = target_value.wrapping_add(other_value);
+
+                self.memory.write_register(target, final_value);
+                self.pc += 2;
+            }
             asm::Instruction::AddI(register, value) => {
                 let add_value = Self::sign_extend_u8(value);
                 println!(
@@ -421,6 +494,18 @@ impl Emulator {
                     .write_long(self.memory.read_register(n_register), self.memory.pr);
                 self.pc += 2;
             }
+            asm::Instruction::PopPROther(n_register) => {
+                println!(
+                    "[{:4x}] LDS.L (R{}) -> PR, R{} + 4 -> R{}",
+                    self.pc, n_register, n_register, n_register
+                );
+
+                let value = self.memory.read_long(self.memory.read_register(n_register));
+                self.memory.pr = value;
+                self.memory
+                    .write_register(n_register, self.memory.read_register(n_register) + 4);
+                self.pc += 2;
+            }
 
             // Logic Instructions
             asm::Instruction::Xor(n_register, m_register) => {
@@ -441,8 +526,7 @@ impl Emulator {
             }
             _ => {
                 println!("[{:4x}] Unknown Instruction: {:?}", self.pc, instr);
-                self.pc += 2;
-                //return false;
+                return Err(Exception::UnknownInstruction);
             }
         };
 

@@ -12,6 +12,8 @@ pub enum Instruction {
     Nop,
     Mov(u8, u8),
     MovI(u8, u8),
+    MovB(Operand, Operand),
+    MovW(Operand, Operand),
     MovL(Operand, Operand),
     STS(u8),
     Push(u8),
@@ -27,6 +29,7 @@ pub enum Instruction {
     /// The Register that contains the StackPtr
     PopPROther(u8),
     Xor(u8, u8),
+    Add(u8, u8),
     AddI(u8, u8),
     CmpEq(u8, u8),
     /// First >= Second (unsigned)
@@ -47,6 +50,9 @@ pub enum Instruction {
     Shll8(u8),
     Shll16(u8),
     Shlr(u8),
+    Shlr2(u8),
+    Shlr8(u8),
+    Shlr16(u8),
     Literal(u8, u8),
 }
 
@@ -61,8 +67,14 @@ impl Instruction {
             Instruction::MovL(Operand::Register(target), Operand::AtRegister(source)) => {
                 [0x60 | (target & 0x0f), 0x02 | ((source << 4) & 0xf0)]
             }
+            Instruction::MovB(Operand::AtRegister(target), Operand::Register(source)) => {
+                [0x20 | (target & 0x0f), 0x00 | ((source << 4) & 0xf0)]
+            }
             Instruction::MovL(Operand::AtRegister(target), Operand::Register(source)) => {
                 [0x20 | (target & 0x0f), 0x02 | ((source << 4) & 0xf0)]
+            }
+            Instruction::MovW(Operand::Register(target), Operand::Displacement8(disp)) => {
+                [0x90 | (target & 0x0f), *disp]
             }
             Instruction::MovL(Operand::Register(target), Operand::Displacement8(disp)) => {
                 [0xd0 | (target & 0x0f), *disp]
@@ -73,6 +85,9 @@ impl Instruction {
             Instruction::PopPR => [0x4f, 0x26],
             Instruction::Xor(target, other) => {
                 [0x20 | (target & 0x0f), 0x0a | ((other << 4) & 0xf0)]
+            }
+            Instruction::Add(target, other) => {
+                [0x30 | (target & 0x0f), 0x0c | ((other << 4) & 0xf0)]
             }
             Instruction::AddI(target, value) => [0x70 | (target & 0x0f), *value],
             Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), ((right << 4) & 0xf0)],
@@ -88,6 +103,9 @@ impl Instruction {
             Instruction::Shll8(target) => [0x40 | (target & 0x0f), 0x18],
             Instruction::Shll16(target) => [0x40 | (target & 0x0f), 0x28],
             Instruction::Shlr(target) => [0x40 | (target & 0x0f), 0x01],
+            Instruction::Shlr2(target) => [0x40 | (target & 0x0f), 0x09],
+            Instruction::Shlr8(target) => [0x40 | (target & 0x0f), 0x19],
+            Instruction::Shlr16(target) => [0x40 | (target & 0x0f), 0x29],
             Instruction::Literal(first, second) => [*first, *second],
             _ => unimplemented!("Combination {:?} is not yet implemented", self),
         }
@@ -107,6 +125,10 @@ impl Instruction {
 
             (0x6, n_reg, m_reg, 0x3) => Self::Mov(n_reg, m_reg),
             (0xe, n_reg, val_1, val_2) => Self::MovI(n_reg, (val_1 << 4) | val_2),
+            (0x9, n_reg, d_1, d_2) => Self::MovW(
+                Operand::Register(n_reg),
+                Operand::Displacement8((d_1 << 4) | d_2),
+            ),
             (0xd, n_reg, d_1, d_2) => Self::MovL(
                 Operand::Register(n_reg),
                 Operand::Displacement8((d_1 << 4) | d_2),
@@ -114,10 +136,14 @@ impl Instruction {
             (0x6, n_reg, m_reg, 0x2) => {
                 Self::MovL(Operand::Register(n_reg), Operand::AtRegister(m_reg))
             }
+            (0x2, n_reg, m_reg, 0x0) => {
+                Self::MovB(Operand::AtRegister(n_reg), Operand::Register(m_reg))
+            }
             (0x2, n_reg, m_reg, 0x2) => {
                 Self::MovL(Operand::AtRegister(n_reg), Operand::Register(m_reg))
             }
             (0x6, n_reg, m_reg, 0x6) => Self::PopOther(n_reg, m_reg),
+            (0x4, n_reg, 0x2, 0x6) => Self::PopPROther(n_reg),
             (0x2, n_reg, m_reg, 0x6) => Self::PushOther(m_reg, n_reg),
             (0x4, n_reg, 0x2, 0x2) => Self::PushPROther(n_reg),
 
@@ -137,6 +163,7 @@ impl Instruction {
             (0x3, n_reg, m_reg, 0x2) => Self::CmpHs(n_reg, m_reg),
             (0x3, n_reg, m_reg, 0x6) => Self::CmpHi(n_reg, m_reg),
 
+            (0x3, n_reg, m_reg, 0xc) => Self::Add(n_reg, m_reg),
             (0x7, n_reg, val_1, val_2) => Self::AddI(n_reg, (val_1 << 4) | val_2),
 
             (0x4, n_reg, 0x0, 0x0) => Self::Shll(n_reg),
@@ -144,6 +171,9 @@ impl Instruction {
             (0x4, n_reg, 0x1, 0x8) => Self::Shll8(n_reg),
             (0x4, n_reg, 0x2, 0x8) => Self::Shll16(n_reg),
             (0x4, n_reg, 0x0, 0x1) => Self::Shlr(n_reg),
+            (0x4, n_reg, 0x0, 0x9) => Self::Shlr2(n_reg),
+            (0x4, n_reg, 0x1, 09) => Self::Shlr8(n_reg),
+            (0x4, n_reg, 0x2, 0x9) => Self::Shlr16(n_reg),
             (0x2, n_reg, m_reg, 0xa) => Self::Xor(n_reg, m_reg),
 
             (p1, p2, p3, p4) => Self::Literal((p1 << 4) | p2, (p3 << 4) | p4),

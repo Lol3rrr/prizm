@@ -1,3 +1,7 @@
+use core::panic;
+
+use internal::get_size::get_size;
+
 use super::{expression, function::VarOffset, internal, Functions, Offsets};
 use crate::{
     asm,
@@ -20,11 +24,12 @@ pub fn generate(
                 exp, pre_asm, offsets, functions, vars,
             ));
 
+            let var = vars.get(name).unwrap();
+
             // Load FP into R1
             result.push(asm::Instruction::Mov(1, 14));
             // Add the Offset to R1 to get address of local variable into R1
-            let offset = *vars.get(name).unwrap();
-            result.push(asm::Instruction::AddI(1, offset));
+            result.push(asm::Instruction::AddI(1, var.offset));
 
             // Load the Address that is stored in the variable into R2
             result.push(asm::Instruction::MovL(
@@ -32,11 +37,20 @@ pub fn generate(
                 asm::Operand::AtRegister(1),
             ));
 
-            // MOV.L R0 -> (R2)
-            result.push(asm::Instruction::MovL(
-                asm::Operand::AtRegister(2),
-                asm::Operand::Register(0),
-            ));
+            let op_1 = asm::Operand::AtRegister(2);
+            let op_2 = asm::Operand::Register(0);
+
+            let data_type = match &var.data_type {
+                ir::DataType::Ptr(tmp) => tmp,
+                _ => panic!("Cannot dereference something that is not a PTR-Type"),
+            };
+
+            // MOV.(B|W|L) R0 -> (R2)
+            result.push(match get_size(data_type) {
+                super::function::VariableSize::Long => asm::Instruction::MovL(op_1, op_2),
+                super::function::VariableSize::Word => asm::Instruction::MovW(op_1, op_2),
+                super::function::VariableSize::Byte => asm::Instruction::MovB(op_1, op_2),
+            });
 
             result
         }
@@ -50,8 +64,8 @@ pub fn generate(
             // Load FP into R1
             result.push(asm::Instruction::Mov(1, 14));
             // Add the Offset to R1 to get address of local variable into R1
-            let offset = *vars.get(name).unwrap();
-            result.push(asm::Instruction::AddI(1, offset));
+            let var = vars.get(name).unwrap();
+            result.push(asm::Instruction::AddI(1, var.offset));
 
             // MOV.L R0 -> (R1)
             result.push(asm::Instruction::MovL(

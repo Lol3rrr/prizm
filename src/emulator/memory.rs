@@ -79,6 +79,11 @@ impl Memory {
 
     pub fn write_byte(&mut self, addr: u32, byte: u8) {
         let addr_u = addr as usize;
+        if addr >= 0xAC000000 {
+            println!("Writing to VRAM");
+            return;
+        }
+
         self.check_access(addr_u, 1);
 
         *self.heap.get_mut(addr_u).unwrap() = byte;

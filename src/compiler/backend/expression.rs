@@ -83,13 +83,13 @@ pub fn generate(
         }
 
         ir::Expression::Reference(var_name) => {
-            let offset = *vars.get(var_name).unwrap();
+            let var = vars.get(var_name).unwrap();
 
             vec![
                 // Load FP into R0 (mov R14 -> R0)
                 asm::Instruction::Mov(0, 14),
                 // Add the Var-Offset to R0
-                asm::Instruction::AddI(0, offset),
+                asm::Instruction::AddI(0, var.offset),
             ]
         }
         _ => {
