@@ -24,31 +24,3 @@ pub fn generate(call_id: u16) -> Vec<asm::Instruction> {
 
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn simple_get_key() {
-        let call_id = 0x0eab;
-
-        let expected: Vec<asm::Instruction> = vec![
-            asm::Instruction::MovI(0, 7),
-            asm::Instruction::Shll8(0),
-            asm::Instruction::Shlr(0),
-            asm::Instruction::AddI(0, 42),
-            asm::Instruction::Shll2(0),
-            asm::Instruction::AddI(0, 3),
-            asm::Instruction::MovI(2, 128),
-            asm::Instruction::Shll8(2),
-            asm::Instruction::AddI(2, 2),
-            asm::Instruction::Shll16(2),
-            asm::Instruction::AddI(2, 112),
-            asm::Instruction::Jmp(2),
-            asm::Instruction::Nop,
-        ];
-
-        assert_eq!(expected, generate(call_id));
-    }
-}

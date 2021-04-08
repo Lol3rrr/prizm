@@ -81,7 +81,23 @@ pub fn generate(
 
             internal::store::store_u32(0, *val)
         }
+        ir::Expression::Variable(var_name) => {
+            let var = vars.get(var_name).unwrap();
 
+            let target_op = asm::Operand::Register(0);
+            let source_op = asm::Operand::AtRegister(0);
+            let mov = match var.data_size {
+                function::VariableSize::Byte => asm::Instruction::MovB(target_op, source_op),
+                function::VariableSize::Word => asm::Instruction::MovW(target_op, source_op),
+                function::VariableSize::Long => asm::Instruction::MovL(target_op, source_op),
+            };
+
+            vec![
+                asm::Instruction::Mov(0, 14),
+                asm::Instruction::AddI(0, var.offset),
+                mov,
+            ]
+        }
         ir::Expression::Reference(var_name) => {
             let var = vars.get(var_name).unwrap();
 
@@ -91,6 +107,29 @@ pub fn generate(
                 // Add the Var-Offset to R0
                 asm::Instruction::AddI(0, var.offset),
             ]
+        }
+        ir::Expression::Operation(op, parts) => {
+            let mut result = Vec::new();
+
+            result.push(asm::Instruction::Push(1));
+
+            let second = parts.get(1).unwrap();
+            result.extend(generate(second, pre_asm, offsets, functions, vars));
+            result.push(asm::Instruction::Push(0));
+
+            let first = parts.get(0).unwrap();
+            result.extend(generate(first, pre_asm, offsets, functions, vars));
+            result.push(asm::Instruction::Pop(1));
+
+            let op_instr = match op {
+                ir::OP::Add => asm::Instruction::Add(0, 1),
+                _ => unimplemented!("Operation: {:?}", op),
+            };
+            result.push(op_instr);
+
+            result.push(asm::Instruction::Pop(1));
+
+            result
         }
         _ => {
             println!("Unknown Expression: {:?}", exp);

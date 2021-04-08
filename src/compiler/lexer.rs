@@ -1,3 +1,6 @@
+mod seperator;
+mod word;
+
 #[derive(Debug, PartialEq)]
 pub enum Keyword {
     Integer,
@@ -5,6 +8,7 @@ pub enum Keyword {
     Void,
     Return,
     While,
+    For,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,51 +31,15 @@ pub enum Token {
     Asterisk,
     And,
     Equals,
+    LessThan,
+    GreaterThan,
     Plus,
     Minus,
 }
 
-fn parse_word(word: &str, tokens: &mut Vec<Token>) {
-    match word {
-        "int" => tokens.push(Token::Keyword(Keyword::Integer)),
-        "uint" => tokens.push(Token::Keyword(Keyword::UInteger)),
-        "void" => tokens.push(Token::Keyword(Keyword::Void)),
-        "return" => tokens.push(Token::Keyword(Keyword::Return)),
-        "while" => tokens.push(Token::Keyword(Keyword::While)),
-        "+" => tokens.push(Token::Plus),
-        "-" => tokens.push(Token::Minus),
-        _ if !word.is_empty() => {
-            if let Ok(int_value) = word.parse() {
-                tokens.push(Token::Constant(Value::Integer(int_value)));
-                return;
-            }
-            if let Ok(uint_value) = word.parse() {
-                tokens.push(Token::Constant(Value::UInteger(uint_value)));
-                return;
-            }
-
-            tokens.push(Token::Identifier(word.to_owned()));
-        }
-        _ => {}
-    };
-}
-
-fn parse_seperator(seperator: &str, tokens: &mut Vec<Token>) {
-    match seperator {
-        "(" => tokens.push(Token::OpenParan),
-        ")" => tokens.push(Token::CloseParan),
-        "{" => tokens.push(Token::OpenCurlyBrace),
-        "}" => tokens.push(Token::CloseCurlyBrace),
-        ";" => tokens.push(Token::Semicolon),
-        "*" => tokens.push(Token::Asterisk),
-        "&" => tokens.push(Token::And),
-        "," => tokens.push(Token::Comma),
-        "=" => tokens.push(Token::Equals),
-        _ => {}
-    };
-}
-
-const SEPERATORS: &[char] = &['(', ')', '{', '}', ';', ' ', '\n', '\t', '*', '&', ',', '='];
+const SEPERATORS: &[char] = &[
+    '(', ')', '{', '}', ';', ' ', '\n', '\t', '*', '&', ',', '=', '<', '>', '+', '-',
+];
 
 pub fn tokenize(content: &str) -> Vec<Token> {
     let mut result = Vec::new();
@@ -81,8 +49,8 @@ pub fn tokenize(content: &str) -> Vec<Token> {
         let current = &left_to_search[..index];
         let seperator = &left_to_search[index..index + 1];
 
-        parse_word(current, &mut result);
-        parse_seperator(seperator, &mut result);
+        word::parse(current, &mut result);
+        seperator::parse(seperator, &mut result);
 
         left_to_search = &left_to_search[index + 1..];
     }
@@ -169,6 +137,40 @@ mod tests {
             Token::Equals,
             Token::Constant(Value::Integer(2)),
             Token::Semicolon,
+        ];
+
+        assert_eq!(expected, tokenize(content));
+    }
+
+    #[test]
+    fn for_loop() {
+        let content = "for (int i = 0; i < 10; i++) {
+            test(i);
+        }";
+
+        let expected = vec![
+            Token::Keyword(Keyword::For),
+            Token::OpenParan,
+            Token::Keyword(Keyword::Integer),
+            Token::Identifier("i".to_string()),
+            Token::Equals,
+            Token::Constant(Value::Integer(0)),
+            Token::Semicolon,
+            Token::Identifier("i".to_string()),
+            Token::LessThan,
+            Token::Constant(Value::Integer(10)),
+            Token::Semicolon,
+            Token::Identifier("i".to_string()),
+            Token::Plus,
+            Token::Plus,
+            Token::CloseParan,
+            Token::OpenCurlyBrace,
+            Token::Identifier("test".to_string()),
+            Token::OpenParan,
+            Token::Identifier("i".to_string()),
+            Token::CloseParan,
+            Token::Semicolon,
+            Token::CloseCurlyBrace,
         ];
 
         assert_eq!(expected, tokenize(content));

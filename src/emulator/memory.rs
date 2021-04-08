@@ -1,9 +1,12 @@
+const VRAM: u32 = 0xAC000000;
+
 pub struct Memory {
     registers: [u32; 16],
     pub pr: u32,
     pub t: bool,
     heap: Vec<u8>,
 }
+
 impl Memory {
     pub fn new() -> Self {
         Self {
@@ -19,6 +22,17 @@ impl Memory {
             print!(" x{:X},", reg);
         }
         println!();
+    }
+
+    fn write_u8(&mut self, addr: u32, value: u8) {
+        if addr >= VRAM {
+            println!("Writing to VRAM");
+            return;
+        }
+
+        let addr_u = addr as usize;
+        self.check_access(addr_u, 1);
+        *self.heap.get_mut(addr_u).unwrap() = value;
     }
 
     pub fn write_register(&mut self, reg: u8, value: u32) {
@@ -43,14 +57,11 @@ impl Memory {
         }
     }
     pub fn write_long(&mut self, addr: u32, value: u32) {
-        let addr_u = addr as usize;
-        self.check_access(addr_u, 4);
-
         let bytes = value.to_be_bytes();
-        *self.heap.get_mut(addr_u).unwrap() = bytes[0];
-        *self.heap.get_mut(addr_u + 1).unwrap() = bytes[1];
-        *self.heap.get_mut(addr_u + 2).unwrap() = bytes[2];
-        *self.heap.get_mut(addr_u + 3).unwrap() = bytes[3];
+        self.write_u8(addr, bytes[0]);
+        self.write_u8(addr + 1, bytes[1]);
+        self.write_u8(addr + 1, bytes[2]);
+        self.write_u8(addr + 1, bytes[3]);
     }
     pub fn read_long(&mut self, addr: u32) -> u32 {
         let addr_u = addr as usize;
@@ -78,14 +89,6 @@ impl Memory {
     }
 
     pub fn write_byte(&mut self, addr: u32, byte: u8) {
-        let addr_u = addr as usize;
-        if addr >= 0xAC000000 {
-            println!("Writing to VRAM");
-            return;
-        }
-
-        self.check_access(addr_u, 1);
-
-        *self.heap.get_mut(addr_u).unwrap() = byte;
+        self.write_u8(addr, byte);
     }
 }

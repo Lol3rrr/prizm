@@ -1,12 +1,15 @@
 use core::panic;
 
 use internal::get_size::get_size;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
 use super::{expression, function::VarOffset, internal, Functions, Offsets};
 use crate::{
     asm,
     compiler::ir::{self, Statement},
 };
+
+mod comparison;
 
 pub fn generate(
     statement: &ir::Statement,
@@ -16,41 +19,55 @@ pub fn generate(
     vars: &VarOffset,
 ) -> Vec<asm::Instruction> {
     match statement {
-        Statement::DerefAssignment(name, exp) => {
+        Statement::DerefAssignment(destination, exp) => {
             let mut result = Vec::new();
 
-            // Evaluate the expression first
+            // Evaluate the Target first
+            result.extend(expression::generate(
+                destination,
+                pre_asm,
+                offsets,
+                functions,
+                vars,
+            ));
+            // Push the Destination onto the Stack
+            result.push(asm::Instruction::Push(0));
+
+            // Evaluate the Expression itself
             result.append(&mut expression::generate(
                 exp, pre_asm, offsets, functions, vars,
             ));
 
-            let var = vars.get(name).unwrap();
+            result.push(asm::Instruction::Pop(1));
 
-            // Load FP into R1
-            result.push(asm::Instruction::Mov(1, 14));
-            // Add the Offset to R1 to get address of local variable into R1
-            result.push(asm::Instruction::AddI(1, var.offset));
+            let op_target = asm::Operand::AtRegister(1);
+            let op_source = asm::Operand::Register(0);
 
-            // Load the Address that is stored in the variable into R2
-            result.push(asm::Instruction::MovL(
-                asm::Operand::Register(2),
-                asm::Operand::AtRegister(1),
-            ));
+            let mov_instr = match destination {
+                ir::Expression::Variable(name) => {
+                    let var = vars.get(name).unwrap();
 
-            let op_1 = asm::Operand::AtRegister(2);
-            let op_2 = asm::Operand::Register(0);
+                    let data_type = match &var.data_type {
+                        ir::DataType::Ptr(tmp) => tmp,
+                        _ => panic!("Cannot dereference something that is not a PTR-Type"),
+                    };
 
-            let data_type = match &var.data_type {
-                ir::DataType::Ptr(tmp) => tmp,
-                _ => panic!("Cannot dereference something that is not a PTR-Type"),
+                    // MOV.(B|W|L) R0 -> (R2)
+                    match get_size(data_type) {
+                        super::function::VariableSize::Long => {
+                            asm::Instruction::MovL(op_target, op_source)
+                        }
+                        super::function::VariableSize::Word => {
+                            asm::Instruction::MovW(op_target, op_source)
+                        }
+                        super::function::VariableSize::Byte => {
+                            asm::Instruction::MovB(op_target, op_source)
+                        }
+                    }
+                }
+                _ => asm::Instruction::MovB(op_target, op_source),
             };
-
-            // MOV.(B|W|L) R0 -> (R2)
-            result.push(match get_size(data_type) {
-                super::function::VariableSize::Long => asm::Instruction::MovL(op_1, op_2),
-                super::function::VariableSize::Word => asm::Instruction::MovW(op_1, op_2),
-                super::function::VariableSize::Byte => asm::Instruction::MovB(op_1, op_2),
-            });
+            result.push(mov_instr);
 
             result
         }
@@ -91,8 +108,15 @@ pub fn generate(
         }
         Statement::WhileLoop(left, comp, right, inner) => {
             let mut result = Vec::new();
+            let id: String = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(30)
+                .map(char::from)
+                .collect();
+            let start_label = format!("WHILE_START_{}", id);
+            let end_label = format!("WHILE_END_{}", id);
 
-            result.push(asm::Instruction::Label("WHILE_START".to_owned()));
+            result.push(asm::Instruction::Label(start_label.clone()));
 
             // Generate the Left-Side of the Expression
             result.append(&mut expression::generate(
@@ -112,14 +136,11 @@ pub fn generate(
 
             // R0 -> Right Side
             // R1 -> Left Side
-            let n_register = 1; // usually 1 but 0 for testing right now
+            let n_register = 1;
             let m_register = 0;
 
-            match comp {
-                ir::Comparison::Equal => {
-                    result.push(asm::Instruction::CmpEq(n_register, m_register));
-                }
-            };
+            let comp_instr = comparison::generate(comp, n_register, m_register, false).unwrap();
+            result.push(comp_instr);
 
             let mut generated_inner = Vec::new();
             // Generates the inner code
@@ -132,17 +153,17 @@ pub fn generate(
             // NO Nop needed because its not a delayed branch
 
             // Branch to the end of the loop
-            result.push(asm::Instruction::JmpLabel("WHILE_END".to_owned()));
+            result.push(asm::Instruction::JmpLabel(end_label.clone()));
             // Noop
             result.push(asm::Instruction::Nop);
 
             // The jump back to the top
-            generated_inner.push(asm::Instruction::JmpLabel("WHILE_START".to_owned()));
+            generated_inner.push(asm::Instruction::JmpLabel(start_label));
             // Noop
             generated_inner.push(asm::Instruction::Nop);
 
             result.append(&mut generated_inner);
-            result.push(asm::Instruction::Label("WHILE_END".to_owned()));
+            result.push(asm::Instruction::Label(end_label));
 
             result
         }

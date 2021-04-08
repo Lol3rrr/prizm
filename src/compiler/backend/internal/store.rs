@@ -38,22 +38,3 @@ pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
 
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn store_u16_0x31f0() {
-        let expected: Vec<asm::Instruction> = vec![
-            asm::Instruction::MovI(0, 24),
-            asm::Instruction::Shll8(0),
-            asm::Instruction::Shlr(0),
-            asm::Instruction::AddI(0, 124),
-            asm::Instruction::Shll2(0),
-            asm::Instruction::AddI(0, 0),
-        ];
-
-        assert_eq!(expected, store_u16(0, 0x31f0));
-    }
-}

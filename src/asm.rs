@@ -34,8 +34,12 @@ pub enum Instruction {
     CmpEq(u8, u8),
     /// First >= Second (unsigned)
     CmpHs(u8, u8),
+    /// First >= Second (signed)
+    CmpGe(u8, u8),
     /// First > Second (unsigned)
     CmpHi(u8, u8),
+    /// First > Second (signed)
+    CmpGt(u8, u8),
     Label(String),
     BT(u8),
     BF(u8),
@@ -90,7 +94,8 @@ impl Instruction {
                 [0x30 | (target & 0x0f), 0x0c | ((other << 4) & 0xf0)]
             }
             Instruction::AddI(target, value) => [0x70 | (target & 0x0f), *value],
-            Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), ((right << 4) & 0xf0)],
+            Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), (right << 4) | 0x00],
+            Instruction::CmpHs(left, right) => [0x30 | (left & 0x0f), (right << 4) | 0x02],
             Instruction::BT(disp) => [0x89, *disp],
             Instruction::BRA(disp) => {
                 [0xa0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0x00ff) as u8]

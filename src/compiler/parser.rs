@@ -1,190 +1,19 @@
-use std::iter::Peekable;
-
-use super::{
-    ir,
-    lexer::{Keyword, Token},
-};
+use super::{ir, lexer::Token};
 
 mod call_params;
 mod comparison;
 mod datatype;
 mod expression;
 mod func_args;
-
-fn parse_statements<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
-where
-    I: Iterator<Item = &'a Token>,
-{
-    let mut result = Vec::new();
-
-    while let Some(peeked) = iter.peek() {
-        match peeked {
-            Token::Keyword(Keyword::Return) => {
-                iter.next();
-                let expression = match expression::parse(iter) {
-                    Some(exp) => exp,
-                    None => ir::Expression::Empty,
-                };
-
-                result.push(ir::Statement::Return(expression));
-
-                // Removes the next item if its a semicolon
-                iter.next_if_eq(&&Token::Semicolon);
-            }
-            Token::Keyword(Keyword::While) => {
-                iter.next();
-
-                match iter.next() {
-                    Some(Token::OpenParan) => {}
-                    _ => break,
-                };
-
-                let left_exp = match expression::parse(iter) {
-                    Some(exp) => exp,
-                    None => break,
-                };
-
-                let comp = match comparison::parse(iter) {
-                    Some(c) => c,
-                    None => break,
-                };
-
-                let right_exp = match expression::parse(iter) {
-                    Some(exp) => exp,
-                    None => break,
-                };
-
-                match iter.next() {
-                    Some(Token::CloseParan) => {}
-                    _ => break,
-                };
-
-                match iter.next() {
-                    Some(Token::OpenCurlyBrace) => {}
-                    _ => break,
-                };
-
-                let inner = parse_statements(iter);
-
-                result.push(ir::Statement::WhileLoop(left_exp, comp, right_exp, inner));
-            }
-            Token::Keyword(_) => {
-                let d_type = match datatype::parse(iter) {
-                    Some(d) => d,
-                    None => break,
-                };
-
-                let var_name = match iter.peek() {
-                    Some(Token::Identifier(raw_name)) => raw_name.to_owned(),
-                    _ => break,
-                };
-
-                result.push(ir::Statement::Declaration(var_name, d_type));
-
-                // Removes the next item if its a semicolon
-                iter.next_if_eq(&&Token::Semicolon);
-            }
-            Token::Identifier(name) => {
-                iter.next();
-
-                match iter.next() {
-                    Some(Token::Equals) => {
-                        let expression = match expression::parse(iter) {
-                            Some(exp) => exp,
-                            None => break,
-                        };
-
-                        result.push(ir::Statement::Assignment(name.to_owned(), expression));
-
-                        // Removes the next item if its a semicolon
-                        iter.next_if_eq(&&Token::Semicolon);
-                    }
-                    Some(Token::OpenParan) => {
-                        let params = match call_params::parse(iter) {
-                            Some(p) => p,
-                            None => break,
-                        };
-
-                        result.push(ir::Statement::SingleExpression(ir::Expression::Call(
-                            name.to_owned(),
-                            params,
-                        )));
-
-                        iter.next_if_eq(&&Token::Semicolon);
-                    }
-                    _ => break,
-                };
-            }
-            Token::Asterisk => {
-                iter.next();
-
-                let var_name = match iter.next() {
-                    Some(Token::Identifier(n)) => n.to_owned(),
-                    _ => break,
-                };
-
-                match iter.next() {
-                    Some(Token::Equals) => {
-                        let exp = match expression::parse(iter) {
-                            Some(e) => e,
-                            None => break,
-                        };
-
-                        result.push(ir::Statement::DerefAssignment(var_name, exp));
-
-                        iter.next_if_eq(&&Token::Semicolon);
-                    }
-                    _ => break,
-                };
-            }
-            Token::CloseCurlyBrace => break,
-            _ => {
-                println!("[Parse-Statements] Unexpected: {:?}", peeked);
-                break;
-            }
-        };
-    }
-
-    result
-}
-
-fn parse_function<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Function>
-where
-    I: Iterator<Item = &'a Token>,
-{
-    let datatype = match iter.next() {
-        Some(Token::Keyword(Keyword::Integer)) => ir::DataType::I32,
-        _ => return None,
-    };
-
-    let name = match iter.next() {
-        Some(Token::Identifier(n)) => n.to_owned(),
-        _ => return None,
-    };
-
-    match iter.next() {
-        Some(Token::OpenParan) => {}
-        _ => return None,
-    };
-
-    let args = func_args::parse(iter)?;
-
-    match iter.next() {
-        Some(Token::OpenCurlyBrace) => {}
-        _ => return None,
-    };
-
-    let statements = parse_statements(iter);
-
-    Some(ir::Function(name, datatype, args, statements))
-}
+mod function;
+mod statements;
 
 pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
     let mut functions = Vec::new();
 
     let mut iter = tokens.iter().peekable();
     while iter.peek().is_some() {
-        if let Some(func) = parse_function(&mut iter) {
+        if let Some(func) = function::parse(&mut iter) {
             functions.push(func);
         }
     }
@@ -195,7 +24,7 @@ pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compiler::lexer::Value;
+    use crate::compiler::lexer::{Keyword, Value};
 
     #[test]
     fn simple_function_with_return() {

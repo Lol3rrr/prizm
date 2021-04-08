@@ -11,6 +11,17 @@ where
     I: Iterator<Item = &'a Token>,
 {
     match iter.peek() {
+        Some(Token::OpenParan) => {
+            iter.next();
+            let inner = parse(iter);
+
+            match iter.next() {
+                Some(Token::CloseParan) => {}
+                _ => return None,
+            };
+
+            inner
+        }
         Some(Token::Constant(_)) | Some(Token::Identifier(_)) => {
             let first = iter.next().unwrap();
 
@@ -52,8 +63,8 @@ where
                 _ => Some(left_side),
             }
         }
-        Some(Token::And) | Some(Token::Asterisk) => {
-            let first = iter.next().unwrap();
+        Some(Token::And) => {
+            iter.next().unwrap();
 
             let var_name = match iter.peek() {
                 Some(Token::Identifier(name)) => {
@@ -63,11 +74,14 @@ where
                 _ => return None,
             };
 
-            match first {
-                Token::And => Some(ir::Expression::Reference(var_name)),
-                Token::Asterisk => Some(ir::Expression::Dereference(var_name)),
-                _ => None,
-            }
+            Some(ir::Expression::Reference(var_name))
+        }
+        Some(Token::Asterisk) => {
+            iter.next().unwrap();
+
+            let inner = parse(iter).unwrap();
+
+            Some(ir::Expression::Dereference(Box::new(inner)))
         }
         _ => None,
     }
@@ -143,7 +157,42 @@ mod tests {
     fn dereference_variable() {
         let tokens = &[Token::Asterisk, Token::Identifier("test".to_string())];
 
-        let expected = Some(ir::Expression::Dereference("test".to_string()));
+        let expected = Some(ir::Expression::Dereference(Box::new(
+            ir::Expression::Variable("test".to_string()),
+        )));
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+    }
+    #[test]
+    fn dereference_constant() {
+        let tokens = &[Token::Asterisk, Token::Constant(Value::Integer(0))];
+
+        let expected = Some(ir::Expression::Dereference(Box::new(
+            ir::Expression::Constant(ir::Value::I32(0)),
+        )));
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+    }
+    #[test]
+    fn dereference_calc() {
+        let tokens = &[
+            Token::Asterisk,
+            Token::OpenParan,
+            Token::Constant(Value::Integer(1)),
+            Token::Plus,
+            Token::Constant(Value::Integer(2)),
+            Token::CloseParan,
+        ];
+
+        let expected = Some(ir::Expression::Dereference(Box::new(
+            ir::Expression::Operation(
+                ir::OP::Add,
+                vec![
+                    ir::Expression::Constant(ir::Value::I32(1)),
+                    ir::Expression::Constant(ir::Value::I32(2)),
+                ],
+            ),
+        )));
 
         assert_eq!(expected, parse(&mut tokens.iter().peekable()));
     }

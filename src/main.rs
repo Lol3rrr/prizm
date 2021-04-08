@@ -92,10 +92,6 @@ fn main() {
                         };
                     }
                     Some("step") => {
-                        if breakpoints.get(&em.pc()).is_some() {
-                            println!("Reached Breakpoint");
-                            continue;
-                        }
                         if let Err(e) = em.emulate_single() {
                             println!("Error: {:?}", e);
                         }

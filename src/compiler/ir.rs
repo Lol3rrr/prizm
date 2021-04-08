@@ -21,6 +21,7 @@ pub enum OP {
 #[derive(Debug, PartialEq)]
 pub enum Comparison {
     Equal,
+    LessThan,
 }
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +29,7 @@ pub enum Expression {
     Constant(Value),
     Variable(String),
     Reference(String),
-    Dereference(String),
+    Dereference(Box<Expression>),
     Operation(OP, Vec<Expression>),
     Call(String, Vec<Expression>),
     Empty,
@@ -38,7 +39,7 @@ pub enum Expression {
 pub enum Statement {
     Declaration(String, DataType),
     Assignment(String, Expression),
-    DerefAssignment(String, Expression),
+    DerefAssignment(Expression, Expression),
     Return(Expression),
     SingleExpression(Expression),
     WhileLoop(Expression, Comparison, Expression, Vec<Statement>),
@@ -78,6 +79,7 @@ impl Function {
         for tmp in self.3.iter() {
             tmp.pretty_print(3);
         }
+        println!();
     }
 }
 
@@ -85,6 +87,16 @@ impl Statement {
     pub fn pretty_print(&self, padding_length: u8) {
         let padding = gen_padding(padding_length);
 
-        println!("{}{:?}", padding, self);
+        match self {
+            Self::WhileLoop(left, comp, right, inner) => {
+                println!("{}While ({:?} {:?} {:?}):", padding, left, comp, right);
+                for tmp in inner.iter() {
+                    tmp.pretty_print(padding_length + 2);
+                }
+            }
+            _ => {
+                println!("{}{:?}", padding, self);
+            }
+        };
     }
 }

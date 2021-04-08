@@ -2,6 +2,7 @@ mod assembler;
 mod backend;
 mod ir;
 mod lexer;
+mod optimizer;
 mod parser;
 
 // The CPU in the casio calculators is 32Bit
@@ -10,7 +11,9 @@ mod parser;
 pub fn compile(content: &str) -> Vec<u8> {
     let tokens = lexer::tokenize(content);
 
-    let ir = parser::parse(&tokens);
+    let raw_ir = parser::parse(&tokens);
+
+    let ir = optimizer::optimize(raw_ir);
 
     let instr = backend::generate(ir);
 

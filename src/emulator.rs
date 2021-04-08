@@ -173,10 +173,9 @@ impl Emulator {
                     self.pc, m_register, n_register
                 );
 
-                self.memory.write_byte(
-                    self.memory.read_register(n_register),
-                    self.memory.read_register(m_register) as u8,
-                );
+                let target_addr = self.memory.read_register(n_register);
+                let value = self.memory.read_register(m_register) as u8;
+                self.memory.write_byte(target_addr, value);
                 self.pc += 2;
             }
             asm::Instruction::MovL(
