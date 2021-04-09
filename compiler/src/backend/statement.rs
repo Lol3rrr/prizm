@@ -182,7 +182,6 @@ pub fn generate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assembler;
     use crate::backend::function::{VariableMetaData, VariableSize};
 
     #[test]
@@ -268,67 +267,5 @@ mod tests {
         assert_eq!(data[1], *final_heap.get(var_offset + 1).unwrap());
         assert_eq!(data[2], *final_heap.get(var_offset + 2).unwrap());
         assert_eq!(data[3], *final_heap.get(var_offset + 3).unwrap());
-    }
-
-    #[test]
-    fn for_loop() {
-        let statement = ir::Statement::WhileLoop(
-            ir::Condition {
-                left: ir::Expression::Variable("test".to_owned()),
-                right: ir::Expression::Constant(ir::Value::U32(10)),
-                comparison: ir::Comparison::LessThan,
-            },
-            vec![ir::Statement::Assignment(
-                "test".to_owned(),
-                ir::Expression::Operation(
-                    ir::OP::Add,
-                    vec![
-                        ir::Expression::Variable("test".to_owned()),
-                        ir::Expression::Constant(ir::Value::U32(1)),
-                    ],
-                ),
-            )],
-        );
-
-        let mut pre_asm: Vec<asm::Instruction> = Vec::new();
-        let mut offsets = Offsets::new();
-        let functions = Functions::new();
-        let mut vars = VarOffset::new();
-        vars.insert(
-            "test".to_owned(),
-            VariableMetaData {
-                offset: (4 ^ 0xff) + 1,
-                data_size: VariableSize::Long,
-                data_type: ir::DataType::U32,
-            },
-        );
-
-        let expected_registers = [
-            0x1, 0x7fffc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80000, 0x80000,
-        ];
-
-        let result = generate(&statement, &mut pre_asm, &mut offsets, &functions, &vars);
-
-        let final_result = assembler::assemble(result);
-        let target_pc = final_result.len() as u32 + emulator::CODE_MAPPING_OFFSET;
-
-        let mut memory = emulator::Memory::new();
-        memory.write_register(15, 0x7FFFC);
-        memory.write_register(14, 0x80000);
-
-        let mut input = emulator::MockInput::new(vec![]);
-        let mut test_em = emulator::Emulator::new_test_raw(&mut input, final_result, memory);
-
-        assert!(test_em.run_until(target_pc).is_ok());
-
-        let final_registers = test_em.clone_registers();
-        let final_heap = test_em.clone_heap();
-
-        //assert_eq!(expected_registers, final_registers);
-
-        let var_offset = 0x7FFFC;
-        let data = 10u32.to_be_bytes();
-        let var_result = &final_heap[var_offset..var_offset + 4];
-        assert_eq!(&data, var_result);
     }
 }

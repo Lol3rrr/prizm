@@ -81,5 +81,5 @@ fn nested_deref() {
 
     let heap = test_em.clone_heap();
     let expected = vec![1; 25];
-    //assert_eq!(&expected, &heap[100..125]);
+    assert_eq!(&expected, &heap[100..125]);
 }
