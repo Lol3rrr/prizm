@@ -57,16 +57,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "casio"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "image",
- "rand",
- "structopt",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -105,6 +95,18 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
+
+[[package]]
+name = "compiler"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "emulator",
+ "g3a",
+ "rand",
+ "sh",
+ "structopt",
+]
 
 [[package]]
 name = "crc32fast"
@@ -175,6 +177,23 @@ name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+
+[[package]]
+name = "emulator"
+version = "0.1.0"
+dependencies = [
+ "g3a",
+ "sh",
+ "structopt",
+]
+
+[[package]]
+name = "g3a"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "image",
+]
 
 [[package]]
 name = "getrandom"
@@ -470,6 +489,10 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "sh"
+version = "0.1.0"
 
 [[package]]
 name = "strsim"
