@@ -1,8 +1,13 @@
 use crate::asm;
 
 pub fn store_u16(register: u8, value: u16) -> Vec<asm::Instruction> {
+    // Optimize for the value 0
     if value == 0 {
         return vec![asm::Instruction::Xor(register, register)];
+    }
+    // If it can be set using a move with immediate value, do that
+    if value <= 0x7f {
+        return vec![asm::Instruction::MovI(register, value as u8)];
     }
 
     let bytes = value.to_be_bytes();
@@ -19,8 +24,17 @@ pub fn store_u16(register: u8, value: u16) -> Vec<asm::Instruction> {
 }
 
 pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
+    // Optimize for the value 0
     if value == 0 {
         return vec![asm::Instruction::Xor(register, register)];
+    }
+    // If it can be set using a move with immediate value, do that
+    if value <= 0x7f {
+        return vec![asm::Instruction::MovI(register, value as u8)];
+    }
+    // If the value is only 16bit or less, only generate that code
+    if value <= 0xffff {
+        return store_u16(register, value as u16);
     }
 
     let other_reg = if register == 1 { 0 } else { 1 };
