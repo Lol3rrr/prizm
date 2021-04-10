@@ -2,91 +2,7 @@ use std::collections::HashMap;
 
 use crate::asm;
 
-#[derive(Debug)]
-struct Jump {
-    start: u32,
-    target: u32,
-}
-
-#[derive(Debug)]
-enum Entry {
-    Instruction(asm::Instruction),
-    Jump(Jump),
-}
-
-fn to_entry_list(instr: &[asm::Instruction], targets: &HashMap<String, u32>) -> Vec<Entry> {
-    let mut result = Vec::new();
-
-    for tmp in instr {
-        match tmp {
-            asm::Instruction::Label(_) => {}
-            asm::Instruction::JmpLabel(name) => {
-                let current = result.len() as u32;
-                let target = *targets.get(name).unwrap();
-                result.push(Entry::Jump(Jump {
-                    start: current * 2,
-                    target,
-                }));
-            }
-            _ => {
-                result.push(Entry::Instruction(tmp.to_owned()));
-            }
-        }
-    }
-
-    result
-}
-
-fn move_entries(entries: &mut Vec<Entry>, start: usize, offset: u32) {
-    for entrie in entries.iter_mut() {
-        if let Entry::Jump(tmp) = entrie {
-            if tmp.start > start as u32 {
-                tmp.start += offset;
-            }
-            if tmp.target > start as u32 {
-                tmp.target += offset;
-            }
-        }
-    }
-}
-
-const SMALL_JUMP_OFFSET: u32 = 2;
-fn entries_to_asm(mut entries: Vec<Entry>) -> Vec<asm::Instruction> {
-    let length = entries.len();
-    let mut offset = 0;
-    for index in 0..length {
-        if let Entry::Jump(_) = entries.get(index).unwrap() {
-            move_entries(&mut entries, offset, SMALL_JUMP_OFFSET);
-            offset += 2;
-        }
-        offset += 2;
-    }
-
-    let mut result = Vec::new();
-    for tmp in entries.drain(..) {
-        match tmp {
-            Entry::Jump(jmp) => {
-                let start = jmp.start + 4;
-                let target = jmp.target;
-
-                let delta = if target < start {
-                    let delta = (start - target) / 2;
-                    let jmp_offset = ((delta ^ 0xffffffff) + 1) as u16;
-                    jmp_offset
-                } else {
-                    ((target - start) / 2) as u16
-                };
-                result.push(asm::Instruction::BRA(delta));
-                result.push(asm::Instruction::Nop);
-            }
-            Entry::Instruction(instr) => {
-                result.push(instr);
-            }
-        };
-    }
-
-    result
-}
+mod entry;
 
 fn asm_to_byte(instr: Vec<asm::Instruction>) -> Vec<u8> {
     let mut result = Vec::with_capacity(instr.len() * 2);
@@ -96,12 +12,6 @@ fn asm_to_byte(instr: Vec<asm::Instruction>) -> Vec<u8> {
     }
 
     result
-}
-
-fn print_instructions(instr: &[asm::Instruction]) {
-    for (index, tmp) in instr.iter().enumerate() {
-        println!("[{:08x}] {:?}", index * 2, tmp);
-    }
 }
 
 fn find_labels(instr: &[asm::Instruction]) -> HashMap<String, u32> {
@@ -120,13 +30,11 @@ fn find_labels(instr: &[asm::Instruction]) -> HashMap<String, u32> {
 }
 
 pub fn assemble(instr: Vec<asm::Instruction>) -> Vec<u8> {
-    print_instructions(&instr);
-
     let targets = find_labels(&instr);
 
-    let entries = to_entry_list(&instr, &targets);
+    let entries = entry::to_entry_list(&instr, &targets);
 
-    let generated = entries_to_asm(entries);
+    let generated = entry::entries_to_asm(entries);
 
     asm_to_byte(generated)
 }

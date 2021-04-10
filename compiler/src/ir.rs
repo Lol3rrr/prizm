@@ -56,6 +56,7 @@ pub enum Statement {
     Return(Expression),
     SingleExpression(Expression),
     WhileLoop(Condition, Vec<Statement>),
+    If(Condition, Vec<Statement>),
 }
 
 #[derive(Debug, PartialEq)]

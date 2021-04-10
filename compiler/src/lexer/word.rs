@@ -9,6 +9,7 @@ pub fn parse(word: &str, tokens: &mut Vec<Token>) {
         "return" => tokens.push(Token::Keyword(Keyword::Return)),
         "while" => tokens.push(Token::Keyword(Keyword::While)),
         "for" => tokens.push(Token::Keyword(Keyword::For)),
+        "if" => tokens.push(Token::Keyword(Keyword::If)),
         _ if !word.is_empty() => {
             if let Ok(int_value) = word.parse() {
                 tokens.push(Token::Constant(Value::Integer(int_value)));

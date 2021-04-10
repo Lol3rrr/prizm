@@ -105,6 +105,25 @@ where
 
             Some(result)
         }
+        Token::Keyword(Keyword::If) => {
+            iter.next();
+
+            match iter.next() {
+                Some(Token::OpenParan) => {}
+                _ => return None,
+            };
+
+            let cond = condition::parse(iter).unwrap();
+
+            match iter.next() {
+                Some(Token::CloseParan) => {}
+                _ => return None,
+            };
+
+            let inner = parse_scope(iter).unwrap();
+
+            Some(vec![ir::Statement::If(cond, inner)])
+        }
         Token::Keyword(_) => {
             let d_type = match datatype::parse(iter) {
                 Some(d) => d,

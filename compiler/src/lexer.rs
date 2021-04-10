@@ -10,6 +10,7 @@ pub enum Keyword {
     Return,
     While,
     For,
+    If,
 }
 
 #[derive(Debug, PartialEq)]

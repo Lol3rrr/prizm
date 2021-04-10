@@ -175,6 +175,65 @@ pub fn generate(
 
             result
         }
+        ir::Statement::If(
+            ir::Condition {
+                left,
+                right,
+                comparison,
+            },
+            inner,
+        ) => {
+            let mut result = Vec::new();
+            let id: String = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(30)
+                .map(char::from)
+                .collect();
+            let end_label = format!("IF_END_{}", id);
+
+            // Generate the Left-Side of the Expression
+            result.append(&mut expression::generate(
+                left, pre_asm, offsets, functions, vars,
+            ));
+
+            // Push the first result onto the stack
+            result.push(asm::Instruction::Push(0));
+
+            // Generate right side of the expression
+            result.append(&mut expression::generate(
+                right, pre_asm, offsets, functions, vars,
+            ));
+
+            // Pop left side from the stack again
+            result.push(asm::Instruction::Pop(1));
+
+            // R0 -> Right Side
+            // R1 -> Left Side
+            let n_register = 1;
+            let m_register = 0;
+
+            let comp_instr =
+                comparison::generate(comparison, n_register, m_register, false).unwrap();
+            result.push(comp_instr);
+
+            // Branch over the jump to the end if the condition is true
+            result.push(asm::Instruction::BT(1));
+            // NO Nop needed because its not a delayed branch
+
+            // Branch to the end of the loop
+            result.push(asm::Instruction::JmpLabel(end_label.clone()));
+            // Noop
+            result.push(asm::Instruction::Nop);
+
+            // Generates the inner code
+            for tmp in inner.iter() {
+                result.extend(generate(tmp, pre_asm, offsets, functions, vars));
+            }
+
+            result.push(asm::Instruction::Label(end_label));
+
+            result
+        }
         ir::Statement::Declaration(_, _) => Vec::new(),
     }
 }
