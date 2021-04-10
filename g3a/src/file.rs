@@ -81,8 +81,8 @@ impl File {
             return Err(ParseError::MismatchedChecksums);
         }
 
-        let localized = localization::Localized::parse(content).unwrap();
-        let parsed_eactivity = eactivity::EActivity::parse(content).unwrap();
+        let localized = localization::Localized::parse(content)?;
+        let parsed_eactivity = eactivity::EActivity::parse(content)?;
 
         Ok(File {
             internal_name,

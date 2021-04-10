@@ -1,6 +1,11 @@
 use crate::util::write_string;
 
 #[derive(Debug)]
+pub enum LocalizationError {
+    MalformedInput,
+}
+
+#[derive(Debug)]
 pub struct Localized {
     pub english: String,
     pub spanish: String,
@@ -13,8 +18,15 @@ pub struct Localized {
     pub date: String,
 }
 
+fn parse_string(input: Vec<u8>) -> Result<String, LocalizationError> {
+    match String::from_utf8(input) {
+        Ok(s) => Ok(s),
+        Err(_) => Err(LocalizationError::MalformedInput),
+    }
+}
+
 impl Localized {
-    pub fn parse(content: &[u8]) -> Option<Self> {
+    pub fn parse(content: &[u8]) -> Result<Self, LocalizationError> {
         let raw_english = &content[0x006b..0x0083];
         let raw_spanish = &content[0x0083..0x009b];
         let raw_german = &content[0x009b..0x00b3];
@@ -22,12 +34,12 @@ impl Localized {
         let raw_portuguese = &content[0x00cb..0x00e3];
         let raw_chinese = &content[0x00e3..0x00fb];
 
-        let english = String::from_utf8(raw_english.to_vec()).unwrap();
-        let spanish = String::from_utf8(raw_spanish.to_vec()).unwrap();
-        let german = String::from_utf8(raw_german.to_vec()).unwrap();
-        let french = String::from_utf8(raw_french.to_vec()).unwrap();
-        let portuguese = String::from_utf8(raw_portuguese.to_vec()).unwrap();
-        let chinese = String::from_utf8(raw_chinese.to_vec()).unwrap();
+        let english = parse_string(raw_english.to_vec())?;
+        let spanish = parse_string(raw_spanish.to_vec())?;
+        let german = parse_string(raw_german.to_vec())?;
+        let french = parse_string(raw_french.to_vec())?;
+        let portuguese = parse_string(raw_portuguese.to_vec())?;
+        let chinese = parse_string(raw_chinese.to_vec())?;
 
         let raw_eactivity = content[0x012b];
         let eactivity = raw_eactivity != 0;
@@ -35,10 +47,10 @@ impl Localized {
         let raw_version = &content[0x0130..0x013c];
         let raw_date = &content[0x013c..0x014a];
 
-        let version = String::from_utf8(raw_version.to_vec()).unwrap();
-        let date = String::from_utf8(raw_date.to_vec()).unwrap();
+        let version = parse_string(raw_version.to_vec())?;
+        let date = parse_string(raw_date.to_vec())?;
 
-        Some(Self {
+        Ok(Self {
             english,
             spanish,
             german,

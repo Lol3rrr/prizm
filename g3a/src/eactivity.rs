@@ -1,6 +1,22 @@
 use crate::util::write_string;
 
 #[derive(Debug)]
+pub enum Language {
+    English,
+    Spanish,
+    German,
+    French,
+    Portuguese,
+    Chinese,
+}
+
+#[derive(Debug)]
+pub enum EActivityError {
+    MalformedLanguage(Language),
+    TooSmall,
+}
+
+#[derive(Debug)]
 pub struct EActivity {
     english: String,
     spanish: String,
@@ -9,6 +25,13 @@ pub struct EActivity {
     portuguese: String,
     chinese: String,
     icon: Vec<u8>,
+}
+
+fn parse_language(part: Vec<u8>, lang: Language) -> Result<String, EActivityError> {
+    match String::from_utf8(part) {
+        Ok(s) => Ok(s),
+        Err(_) => Err(EActivityError::MalformedLanguage(lang)),
+    }
 }
 
 impl EActivity {
@@ -24,7 +47,11 @@ impl EActivity {
         }
     }
 
-    pub fn parse(content: &[u8]) -> Option<Self> {
+    pub fn parse(content: &[u8]) -> Result<Self, EActivityError> {
+        if content.len() < 0x0590 {
+            return Err(EActivityError::TooSmall);
+        }
+
         let raw_english = &content[0x0170..0x0194];
         let raw_spanish = &content[0x0194..0x01b8];
         let raw_german = &content[0x01b8..0x01dc];
@@ -32,16 +59,16 @@ impl EActivity {
         let raw_portuguese = &content[0x0200..0x0224];
         let raw_chinese = &content[0x0224..0x0248];
 
-        let english = String::from_utf8(raw_english.to_vec()).unwrap();
-        let spanish = String::from_utf8(raw_spanish.to_vec()).unwrap();
-        let german = String::from_utf8(raw_german.to_vec()).unwrap();
-        let french = String::from_utf8(raw_french.to_vec()).unwrap();
-        let portuguese = String::from_utf8(raw_portuguese.to_vec()).unwrap();
-        let chinese = String::from_utf8(raw_chinese.to_vec()).unwrap();
+        let english = parse_language(raw_english.to_vec(), Language::English)?;
+        let spanish = parse_language(raw_spanish.to_vec(), Language::Spanish)?;
+        let german = parse_language(raw_german.to_vec(), Language::German)?;
+        let french = parse_language(raw_french.to_vec(), Language::French)?;
+        let portuguese = parse_language(raw_portuguese.to_vec(), Language::Portuguese)?;
+        let chinese = parse_language(raw_chinese.to_vec(), Language::Chinese)?;
 
         let raw_icon = &content[0x0290..0x0590];
 
-        Some(Self {
+        Ok(Self {
             english,
             spanish,
             german,

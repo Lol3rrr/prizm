@@ -18,7 +18,10 @@ fn main() {
     let cmd = RizmEmulate::from_args();
 
     let raw_file = std::fs::read(cmd.input).unwrap();
-    let file = g3a::File::parse(&raw_file).unwrap();
+    let file = match g3a::File::parse(&raw_file) {
+        Ok(f) => f,
+        Err(e) => panic!("Error parsing File: {:?}", e),
+    };
 
     let mut breakpoints: HashSet<u32> = HashSet::new();
 
