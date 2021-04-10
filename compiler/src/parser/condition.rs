@@ -1,6 +1,9 @@
 use std::iter::Peekable;
 
-use crate::{ir, lexer::Token};
+use crate::{
+    ir,
+    lexer::{Token, TokenMetadata},
+};
 
 use super::{comparison, expression};
 
@@ -9,7 +12,7 @@ use super::{comparison, expression};
 /// in the entire Repo
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Condition>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let left_comp = expression::parse(iter).unwrap();
     let comp = comparison::parse(iter).unwrap();
@@ -29,10 +32,34 @@ mod tests {
     #[test]
     fn simple_conditional() {
         let tokens = &[
-            Token::Identifier("test_left".to_owned()),
-            Token::Equals,
-            Token::Equals,
-            Token::Identifier("test_right".to_owned()),
+            (
+                Token::Identifier("test_left".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_right".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Condition {

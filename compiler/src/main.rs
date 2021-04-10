@@ -16,8 +16,7 @@ fn main() {
     let cmd = RizmCompile::from_args();
 
     // Actually compiling a program
-    let compiler_content = std::fs::read_to_string(cmd.input).unwrap();
-    let compiled_code = compiler::compile(&compiler_content);
+    let compiled_code = compiler::compile_file(cmd.input);
 
     let mut compiled_file_builder =
         g3a::FileBuilder::new("test".to_string(), Utc::now().naive_utc());

@@ -11,8 +11,8 @@ mod parser;
 // Instr-DOCS: http://shared-ptr.com/sh_insns.html
 // Memory-Stuff: https://www.cemetech.net/forum/viewtopic.php?t=9334
 /// Returns the Raw Binary Instructions for the Calculator
-pub fn compile(content: &str) -> Vec<u8> {
-    let tokens = lexer::tokenize(content);
+pub fn compile(content: &str, file: String) -> Vec<u8> {
+    let tokens = lexer::tokenize(content, file);
 
     let raw_ir = parser::parse(&tokens);
 
@@ -21,4 +21,9 @@ pub fn compile(content: &str) -> Vec<u8> {
     let instr = backend::generate(ir);
 
     assembler::assemble(instr)
+}
+
+pub fn compile_file(file: String) -> Vec<u8> {
+    let content = std::fs::read_to_string(file.clone()).unwrap();
+    compile(&content, file)
 }

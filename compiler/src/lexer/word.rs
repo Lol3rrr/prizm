@@ -1,27 +1,25 @@
 use super::{Keyword, Token, Value};
 
-pub fn parse(word: &str, tokens: &mut Vec<Token>) {
+pub fn parse(word: &str) -> Option<Token> {
     match word {
-        "unsigned" => tokens.push(Token::Keyword(Keyword::Unsigned)),
-        "int" => tokens.push(Token::Keyword(Keyword::Integer)),
-        "short" => tokens.push(Token::Keyword(Keyword::Short)),
-        "void" => tokens.push(Token::Keyword(Keyword::Void)),
-        "return" => tokens.push(Token::Keyword(Keyword::Return)),
-        "while" => tokens.push(Token::Keyword(Keyword::While)),
-        "for" => tokens.push(Token::Keyword(Keyword::For)),
-        "if" => tokens.push(Token::Keyword(Keyword::If)),
+        "unsigned" => Some(Token::Keyword(Keyword::Unsigned)),
+        "int" => Some(Token::Keyword(Keyword::Integer)),
+        "short" => Some(Token::Keyword(Keyword::Short)),
+        "void" => Some(Token::Keyword(Keyword::Void)),
+        "return" => Some(Token::Keyword(Keyword::Return)),
+        "while" => Some(Token::Keyword(Keyword::While)),
+        "for" => Some(Token::Keyword(Keyword::For)),
+        "if" => Some(Token::Keyword(Keyword::If)),
         _ if !word.is_empty() => {
             if let Ok(int_value) = word.parse() {
-                tokens.push(Token::Constant(Value::Integer(int_value)));
-                return;
+                return Some(Token::Constant(Value::Integer(int_value)));
             }
             if let Ok(uint_value) = word.parse() {
-                tokens.push(Token::Constant(Value::UInteger(uint_value)));
-                return;
+                return Some(Token::Constant(Value::UInteger(uint_value)));
             }
 
-            tokens.push(Token::Identifier(word.to_owned()));
+            Some(Token::Identifier(word.to_owned()))
         }
-        _ => {}
-    };
+        _ => None,
+    }
 }

@@ -1,21 +1,24 @@
 use std::iter::Peekable;
 
-use crate::{ir, lexer::Token};
+use crate::{
+    ir,
+    lexer::{Token, TokenMetadata},
+};
 
 /// Parses the Comparison Operator itself only consuming 2 entries
 /// from the Iterator and most and only consuming them if they
 /// are actually part of the Comparison
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Comparison>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let peeked = iter.peek();
     match peeked {
-        Some(Token::Equals) => {
+        Some((Token::Equals, _)) => {
             iter.next();
 
             match iter.peek() {
-                Some(Token::Equals) => {
+                Some((Token::Equals, _)) => {
                     iter.next();
 
                     Some(ir::Comparison::Equal)
@@ -23,7 +26,7 @@ where
                 _ => None,
             }
         }
-        Some(Token::LessThan) => {
+        Some((Token::LessThan, _)) => {
             iter.next();
 
             Some(ir::Comparison::LessThan)
@@ -38,7 +41,22 @@ mod tests {
 
     #[test]
     fn parse_equals() {
-        let tokens = &[Token::Equals, Token::Equals];
+        let tokens = &[
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+        ];
 
         let expected = Some(ir::Comparison::Equal);
 
@@ -47,7 +65,13 @@ mod tests {
 
     #[test]
     fn parse_less_than() {
-        let tokens = &[Token::LessThan];
+        let tokens = &[(
+            Token::LessThan,
+            TokenMetadata {
+                file_name: "test".to_string(),
+                line: 1,
+            },
+        )];
 
         let expected = Some(ir::Comparison::LessThan);
 

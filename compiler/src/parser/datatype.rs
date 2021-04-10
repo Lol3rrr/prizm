@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     ir,
-    lexer::{Keyword, Token},
+    lexer::{Keyword, Token, TokenMetadata},
 };
 
 /// Parses the next Datatype
@@ -11,10 +11,10 @@ use crate::{
 /// `unsigned`: Whether or not the unsigend modifier was applied
 fn parse_dt<'a, I>(iter: &mut Peekable<I>, unsigned: bool) -> Option<ir::DataType>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     match iter.peek() {
-        Some(Token::Keyword(tmp)) => {
+        Some((Token::Keyword(tmp), _)) => {
             iter.next();
 
             let raw = match tmp {
@@ -27,7 +27,7 @@ where
             };
 
             match iter.peek() {
-                Some(Token::Asterisk) => {
+                Some((Token::Asterisk, _)) => {
                     iter.next();
                     Some(ir::DataType::Ptr(Box::new(raw)))
                 }
@@ -40,10 +40,10 @@ where
 
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::DataType>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let unsigned = match iter.peek() {
-        Some(Token::Keyword(Keyword::Unsigned)) => {
+        Some((Token::Keyword(Keyword::Unsigned), _)) => {
             iter.next();
             true
         }
@@ -60,8 +60,20 @@ mod tests {
     #[test]
     fn int() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(
@@ -72,9 +84,27 @@ mod tests {
     #[test]
     fn uint() {
         let tokens = &[
-            Token::Keyword(Keyword::Unsigned),
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Unsigned),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(
@@ -86,8 +116,20 @@ mod tests {
     #[test]
     fn short() {
         let tokens = &[
-            Token::Keyword(Keyword::Short),
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Short),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(
@@ -98,9 +140,27 @@ mod tests {
     #[test]
     fn ushort() {
         let tokens = &[
-            Token::Keyword(Keyword::Unsigned),
-            Token::Keyword(Keyword::Short),
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Unsigned),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Short),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(
@@ -112,8 +172,20 @@ mod tests {
     #[test]
     fn void() {
         let tokens = &[
-            Token::Keyword(Keyword::Void),
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Void),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(
@@ -125,9 +197,27 @@ mod tests {
     #[test]
     fn simple_int_ptr() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Asterisk,
-            Token::Identifier("test".to_owned()),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         assert_eq!(

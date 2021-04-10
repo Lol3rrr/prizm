@@ -1,21 +1,24 @@
 use std::iter::Peekable;
 
 use super::expression;
-use crate::{ir, lexer::Token};
+use crate::{
+    ir,
+    lexer::{Token, TokenMetadata},
+};
 
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Expression>>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let mut result = Vec::new();
 
     while let Some(next_token) = iter.peek() {
         match next_token {
-            Token::CloseParan => {
+            (Token::CloseParan, _) => {
                 iter.next();
                 break;
             }
-            Token::Comma => {
+            (Token::Comma, _) => {
                 iter.next();
             }
             _ => {
@@ -39,7 +42,13 @@ mod tests {
 
     #[test]
     fn no_params() {
-        let tokens = &[Token::CloseParan];
+        let tokens = &[(
+            Token::CloseParan,
+            TokenMetadata {
+                file_name: "test".to_string(),
+                line: 1,
+            },
+        )];
 
         let expected = Some(vec![]);
 
@@ -48,7 +57,22 @@ mod tests {
 
     #[test]
     fn one_constant_param() {
-        let tokens = &[Token::Constant(Value::Integer(2)), Token::CloseParan];
+        let tokens = &[
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+        ];
 
         let expected = Some(vec![ir::Expression::Constant(ir::Value::I32(2))]);
 
@@ -58,10 +82,34 @@ mod tests {
     #[test]
     fn two_constant_param() {
         let tokens = &[
-            Token::Constant(Value::Integer(2)),
-            Token::Comma,
-            Token::Constant(Value::Integer(3)),
-            Token::CloseParan,
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Comma,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(vec![

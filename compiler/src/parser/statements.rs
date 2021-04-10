@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     ir,
-    lexer::{Keyword, Token},
+    lexer::{Keyword, Token, TokenMetadata},
 };
 
 use super::{call_params, condition, datatype, expression};
@@ -11,11 +11,11 @@ use super::{call_params, condition, datatype, expression};
 /// treats them all the same (no scope based variables or the like)
 fn parse_scope<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Statement>>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     // Expect an opening curly brace at the start
     match iter.next() {
-        Some(Token::OpenCurlyBrace) => {}
+        Some((Token::OpenCurlyBrace, _)) => {}
         _ => return None,
     };
 
@@ -23,7 +23,7 @@ where
 
     // Expect a closing curly brace at the end
     match iter.next() {
-        Some(Token::CloseCurlyBrace) => {}
+        Some((Token::CloseCurlyBrace, _)) => {}
         _ => return None,
     }
 
@@ -32,11 +32,11 @@ where
 
 fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Statement>>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let peeked = iter.peek()?;
     match peeked {
-        Token::Keyword(Keyword::Return) => {
+        (Token::Keyword(Keyword::Return), _) => {
             iter.next();
             let expression = match expression::parse(iter) {
                 Some(exp) => exp,
@@ -44,22 +44,27 @@ where
             };
 
             // Removes the next item if its a semicolon
-            iter.next_if_eq(&&Token::Semicolon);
+            match iter.peek() {
+                Some((Token::Semicolon, _)) => {
+                    iter.next();
+                }
+                _ => {}
+            };
 
             Some(vec![ir::Statement::Return(expression)])
         }
-        Token::Keyword(Keyword::While) => {
+        (Token::Keyword(Keyword::While), _) => {
             iter.next();
 
             match iter.next() {
-                Some(Token::OpenParan) => {}
+                Some((Token::OpenParan, _)) => {}
                 _ => return None,
             };
 
             let cond = condition::parse(iter).unwrap();
 
             match iter.next() {
-                Some(Token::CloseParan) => {}
+                Some((Token::CloseParan, _)) => {}
                 _ => return None,
             };
 
@@ -67,11 +72,11 @@ where
 
             Some(vec![ir::Statement::WhileLoop(cond, inner)])
         }
-        Token::Keyword(Keyword::For) => {
+        (Token::Keyword(Keyword::For), _) => {
             iter.next();
 
             match iter.next() {
-                Some(Token::OpenParan) => {}
+                Some((Token::OpenParan, _)) => {}
                 _ => return None,
             };
 
@@ -92,10 +97,20 @@ where
 
             let cond = condition::parse(iter).unwrap();
 
-            iter.next_if_eq(&&Token::Semicolon);
+            match iter.peek() {
+                Some((Token::Semicolon, _)) => {
+                    iter.next();
+                }
+                _ => {}
+            };
 
             let third = parse_single(iter).unwrap();
-            iter.next_if_eq(&&Token::CloseParan);
+            match iter.peek() {
+                Some((Token::CloseParan, _)) => {
+                    iter.next();
+                }
+                _ => {}
+            };
 
             let mut inner_loop = parse_scope(iter).unwrap();
             inner_loop.extend(third);
@@ -105,18 +120,18 @@ where
 
             Some(result)
         }
-        Token::Keyword(Keyword::If) => {
+        (Token::Keyword(Keyword::If), _) => {
             iter.next();
 
             match iter.next() {
-                Some(Token::OpenParan) => {}
+                Some((Token::OpenParan, _)) => {}
                 _ => return None,
             };
 
             let cond = condition::parse(iter).unwrap();
 
             match iter.next() {
-                Some(Token::CloseParan) => {}
+                Some((Token::CloseParan, _)) => {}
                 _ => return None,
             };
 
@@ -124,44 +139,59 @@ where
 
             Some(vec![ir::Statement::If(cond, inner)])
         }
-        Token::Keyword(_) => {
+        (Token::Keyword(_), _) => {
             let d_type = match datatype::parse(iter) {
                 Some(d) => d,
                 None => return None,
             };
 
             let var_name = match iter.peek() {
-                Some(Token::Identifier(raw_name)) => raw_name.to_owned(),
+                Some((Token::Identifier(raw_name), _)) => raw_name.to_owned(),
                 _ => return None,
             };
 
             // Removes the next item if its a semicolon
-            iter.next_if_eq(&&Token::Semicolon);
+            match iter.peek() {
+                Some((Token::Semicolon, _)) => {
+                    iter.next();
+                }
+                _ => {}
+            };
 
             Some(vec![ir::Statement::Declaration(var_name, d_type)])
         }
-        Token::Identifier(name) => {
+        (Token::Identifier(name), _) => {
             iter.next();
 
             match iter.next() {
-                Some(Token::Equals) => {
+                Some((Token::Equals, _)) => {
                     let expression = match expression::parse(iter) {
                         Some(exp) => exp,
                         None => return None,
                     };
 
                     // Removes the next item if its a semicolon
-                    iter.next_if_eq(&&Token::Semicolon);
+                    match iter.peek() {
+                        Some((Token::Semicolon, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
 
                     Some(vec![ir::Statement::Assignment(name.to_owned(), expression)])
                 }
-                Some(Token::OpenParan) => {
+                Some((Token::OpenParan, _)) => {
                     let params = match call_params::parse(iter) {
                         Some(p) => p,
                         None => return None,
                     };
 
-                    iter.next_if_eq(&&Token::Semicolon);
+                    match iter.peek() {
+                        Some((Token::Semicolon, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
 
                     Some(vec![ir::Statement::SingleExpression(ir::Expression::Call(
                         name.to_owned(),
@@ -171,26 +201,31 @@ where
                 _ => return None,
             }
         }
-        Token::Asterisk => {
+        (Token::Asterisk, _) => {
             iter.next();
 
             let expression = expression::parse(iter)?;
 
             match iter.next() {
-                Some(Token::Equals) => {
+                Some((Token::Equals, _)) => {
                     let exp = match expression::parse(iter) {
                         Some(e) => e,
                         None => return None,
                     };
 
-                    iter.next_if_eq(&&Token::Semicolon);
+                    match iter.peek() {
+                        Some((Token::Semicolon, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
 
                     Some(vec![ir::Statement::DerefAssignment(expression, exp)])
                 }
                 _ => return None,
             }
         }
-        Token::CloseCurlyBrace => return None,
+        (Token::CloseCurlyBrace, _) => return None,
         _ => {
             println!("[Parse-Statements] Unexpected: {:?}", peeked);
             return None;
@@ -200,7 +235,7 @@ where
 
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let mut result = Vec::new();
 
@@ -220,19 +255,97 @@ mod tests {
     #[test]
     fn while_loop() {
         let tokens = &[
-            Token::Keyword(Keyword::While),
-            Token::OpenParan,
-            Token::Identifier("i".to_string()),
-            Token::Equals,
-            Token::Equals,
-            Token::Constant(Value::Integer(0)),
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Identifier("test".to_owned()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::While),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("i".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected: Vec<ir::Statement> = vec![ir::Statement::WhileLoop(
@@ -253,29 +366,167 @@ mod tests {
     #[test]
     fn for_loop() {
         let tokens = &[
-            Token::Keyword(Keyword::For),
-            Token::OpenParan,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("i".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
-            Token::Identifier("i".to_string()),
-            Token::LessThan,
-            Token::Constant(Value::Integer(10)),
-            Token::Semicolon,
-            Token::Identifier("i".to_string()),
-            Token::Equals,
-            Token::Identifier("i".to_string()),
-            Token::Plus,
-            Token::Constant(Value::Integer(1)),
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Identifier("test".to_owned()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::For),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("i".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("i".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::LessThan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(10)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("i".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("i".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(1)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_owned()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected: Vec<ir::Statement> = vec![
@@ -312,11 +563,41 @@ mod tests {
     #[test]
     fn deref_assign_variable() {
         let tokens = &[
-            Token::Asterisk,
-            Token::Identifier("test".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Statement::DerefAssignment(
@@ -330,15 +611,69 @@ mod tests {
     #[test]
     fn deref_assign_calc() {
         let tokens = &[
-            Token::Asterisk,
-            Token::OpenParan,
-            Token::Constant(Value::Integer(2)),
-            Token::Plus,
-            Token::Constant(Value::Integer(3)),
-            Token::CloseParan,
-            Token::Equals,
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Statement::DerefAssignment(

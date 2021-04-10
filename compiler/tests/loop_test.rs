@@ -13,7 +13,7 @@ fn simple_loop() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();
@@ -40,7 +40,7 @@ fn nested_loop() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 25]);
     let mut memory = emulator::Memory::new();
@@ -68,7 +68,7 @@ fn nested_deref() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 25]);
     let mut memory = emulator::Memory::new();

@@ -14,7 +14,7 @@ fn simple_condition() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![]);
     let mut memory = emulator::Memory::new();

@@ -10,7 +10,7 @@ fn simple_dereference() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();
@@ -35,7 +35,7 @@ fn dereference_expression_1() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();
@@ -61,7 +61,7 @@ fn dereference_expression_2() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();
@@ -87,7 +87,7 @@ fn dereference_expression_3() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();
@@ -114,7 +114,7 @@ fn dereference_expression_4() {
         return 0;
     }";
 
-    let compiled = compiler::compile(program);
+    let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
     let mut memory = emulator::Memory::new();

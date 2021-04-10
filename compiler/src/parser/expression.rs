@@ -3,25 +3,25 @@ use std::iter::Peekable;
 use super::call_params;
 use crate::{
     ir,
-    lexer::{Token, Value},
+    lexer::{Token, TokenMetadata, Value},
 };
 
 fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     match iter.peek() {
-        Some(Token::Constant(const_val)) => {
+        Some((Token::Constant(const_val), _)) => {
             iter.next().unwrap();
             match const_val {
                 Value::Integer(value) => Some(ir::Expression::Constant(ir::Value::I32(*value))),
                 Value::UInteger(value) => Some(ir::Expression::Constant(ir::Value::U32(*value))),
             }
         }
-        Some(Token::Identifier(name)) => {
+        Some((Token::Identifier(name), _)) => {
             iter.next().unwrap();
             match iter.peek() {
-                Some(Token::OpenParan) => {
+                Some((Token::OpenParan, _)) => {
                     iter.next();
 
                     let params = call_params::parse(iter)?;
@@ -36,33 +36,33 @@ where
 
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
 where
-    I: Iterator<Item = &'a Token>,
+    I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     match iter.peek() {
-        Some(Token::OpenParan) => {
+        Some((Token::OpenParan, _)) => {
             iter.next();
             let inner = parse(iter);
 
             match iter.next() {
-                Some(Token::CloseParan) => {}
+                Some((Token::CloseParan, _)) => {}
                 _ => return None,
             };
 
             inner
         }
-        Some(Token::Constant(_)) | Some(Token::Identifier(_)) => {
+        Some((Token::Constant(_), _)) | Some((Token::Identifier(_), _)) => {
             let left_side = parse_single(iter)?;
 
             match iter.peek() {
-                Some(Token::Plus)
-                | Some(Token::Minus)
-                | Some(Token::Asterisk)
-                | Some(Token::Slash) => {
+                Some((Token::Plus, _))
+                | Some((Token::Minus, _))
+                | Some((Token::Asterisk, _))
+                | Some((Token::Slash, _)) => {
                     let operation = match iter.next() {
-                        Some(Token::Plus) => ir::OP::Add,
-                        Some(Token::Minus) => ir::OP::Substract,
-                        Some(Token::Asterisk) => ir::OP::Multiply,
-                        Some(Token::Slash) => ir::OP::Divide,
+                        Some((Token::Plus, _)) => ir::OP::Add,
+                        Some((Token::Minus, _)) => ir::OP::Substract,
+                        Some((Token::Asterisk, _)) => ir::OP::Multiply,
+                        Some((Token::Slash, _)) => ir::OP::Divide,
                         _ => return None,
                     };
 
@@ -92,11 +92,11 @@ where
                 _ => Some(left_side),
             }
         }
-        Some(Token::And) => {
+        Some((Token::And, _)) => {
             iter.next().unwrap();
 
             let var_name = match iter.peek() {
-                Some(Token::Identifier(name)) => {
+                Some((Token::Identifier(name), _)) => {
                     iter.next();
                     name.to_string()
                 }
@@ -105,7 +105,7 @@ where
 
             Some(ir::Expression::Reference(var_name))
         }
-        Some(Token::Asterisk) => {
+        Some((Token::Asterisk, _)) => {
             iter.next().unwrap();
 
             let inner = parse(iter).unwrap();
@@ -122,7 +122,13 @@ mod tests {
 
     #[test]
     fn constant() {
-        let tokens = &[Token::Constant(Value::Integer(2))];
+        let tokens = &[(
+            Token::Constant(Value::Integer(2)),
+            TokenMetadata {
+                file_name: "test".to_string(),
+                line: 1,
+            },
+        )];
 
         let expected = Some(ir::Expression::Constant(ir::Value::I32(2)));
 
@@ -130,7 +136,13 @@ mod tests {
     }
     #[test]
     fn variable() {
-        let tokens = &[Token::Identifier("test".to_string())];
+        let tokens = &[(
+            Token::Identifier("test".to_string()),
+            TokenMetadata {
+                file_name: "test".to_string(),
+                line: 1,
+            },
+        )];
 
         let expected = Some(ir::Expression::Variable("test".to_string()));
 
@@ -140,9 +152,27 @@ mod tests {
     #[test]
     fn constant_plus_constant() {
         let tokens = &[
-            Token::Constant(Value::Integer(2)),
-            Token::Plus,
-            Token::Constant(Value::Integer(3)),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -158,9 +188,27 @@ mod tests {
     #[test]
     fn variable_plus_variable() {
         let tokens = &[
-            Token::Identifier("test_1".to_string()),
-            Token::Plus,
-            Token::Identifier("test_2".to_string()),
+            (
+                Token::Identifier("test_1".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_2".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -176,9 +224,27 @@ mod tests {
     #[test]
     fn variable_multiply_variable() {
         let tokens = &[
-            Token::Identifier("test_1".to_string()),
-            Token::Asterisk,
-            Token::Identifier("test_2".to_string()),
+            (
+                Token::Identifier("test_1".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_2".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -194,11 +260,41 @@ mod tests {
     #[test]
     fn variable_multiply_variable_plus_variable() {
         let tokens = &[
-            Token::Identifier("test_1".to_string()),
-            Token::Asterisk,
-            Token::Identifier("test_2".to_string()),
-            Token::Plus,
-            Token::Identifier("test_3".to_string()),
+            (
+                Token::Identifier("test_1".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_2".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_3".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -220,9 +316,27 @@ mod tests {
     #[test]
     fn variable_divide_variable() {
         let tokens = &[
-            Token::Identifier("test_1".to_string()),
-            Token::Slash,
-            Token::Identifier("test_2".to_string()),
+            (
+                Token::Identifier("test_1".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Slash,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_2".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -238,11 +352,41 @@ mod tests {
     #[test]
     fn variable_divide_variable_plus_variable() {
         let tokens = &[
-            Token::Identifier("test_1".to_string()),
-            Token::Slash,
-            Token::Identifier("test_2".to_string()),
-            Token::Plus,
-            Token::Identifier("test_3".to_string()),
+            (
+                Token::Identifier("test_1".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Slash,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_2".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_3".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Operation(
@@ -264,7 +408,22 @@ mod tests {
 
     #[test]
     fn reference_to_variable() {
-        let tokens = &[Token::And, Token::Identifier("test".to_string())];
+        let tokens = &[
+            (
+                Token::And,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+        ];
 
         let expected = Some(ir::Expression::Reference("test".to_string()));
 
@@ -272,7 +431,22 @@ mod tests {
     }
     #[test]
     fn dereference_variable() {
-        let tokens = &[Token::Asterisk, Token::Identifier("test".to_string())];
+        let tokens = &[
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+        ];
 
         let expected = Some(ir::Expression::Dereference(Box::new(
             ir::Expression::Variable("test".to_string()),
@@ -282,7 +456,22 @@ mod tests {
     }
     #[test]
     fn dereference_constant() {
-        let tokens = &[Token::Asterisk, Token::Constant(Value::Integer(0))];
+        let tokens = &[
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+        ];
 
         let expected = Some(ir::Expression::Dereference(Box::new(
             ir::Expression::Constant(ir::Value::I32(0)),
@@ -293,12 +482,48 @@ mod tests {
     #[test]
     fn dereference_calc() {
         let tokens = &[
-            Token::Asterisk,
-            Token::OpenParan,
-            Token::Constant(Value::Integer(1)),
-            Token::Plus,
-            Token::Constant(Value::Integer(2)),
-            Token::CloseParan,
+            (
+                Token::Asterisk,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(1)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = Some(ir::Expression::Dereference(Box::new(

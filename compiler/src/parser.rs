@@ -1,4 +1,7 @@
-use super::{ir, lexer::Token};
+use super::{
+    ir,
+    lexer::{Token, TokenMetadata},
+};
 
 mod call_params;
 mod comparison;
@@ -9,7 +12,7 @@ mod func_args;
 mod function;
 mod statements;
 
-pub fn parse(tokens: &[Token]) -> Vec<ir::Function> {
+pub fn parse(tokens: &[(Token, TokenMetadata)]) -> Vec<ir::Function> {
     let mut functions = Vec::new();
 
     let mut iter = tokens.iter().peekable();
@@ -30,15 +33,69 @@ mod tests {
     #[test]
     fn simple_function_with_return() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Return),
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Return),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -56,20 +113,104 @@ mod tests {
     #[test]
     fn simple_function_with_return_and_variable() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(2)),
-            Token::Semicolon,
-            Token::Keyword(Keyword::Return),
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Return),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -92,19 +233,97 @@ mod tests {
     #[test]
     fn simple_addition() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test_add".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(2)),
-            Token::Plus,
-            Token::Constant(Value::Integer(3)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_add".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -131,21 +350,111 @@ mod tests {
     #[test]
     fn nested_addition() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test_add".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(2)),
-            Token::Plus,
-            Token::Constant(Value::Integer(3)),
-            Token::Plus,
-            Token::Constant(Value::Integer(4)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_add".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Plus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(4)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -179,19 +488,97 @@ mod tests {
     #[test]
     fn simple_substraction() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test_sub".to_string()),
-            Token::Equals,
-            Token::Constant(Value::Integer(2)),
-            Token::Minus,
-            Token::Constant(Value::Integer(3)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_sub".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(2)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Minus,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(3)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -219,19 +606,97 @@ mod tests {
     #[test]
     fn simple_call() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Identifier("test_func".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::Semicolon,
-            Token::Keyword(Keyword::Return),
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_func".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Return),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
@@ -252,22 +717,118 @@ mod tests {
     #[test]
     fn call_as_assignment() {
         let tokens = &[
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("main".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::OpenCurlyBrace,
-            Token::Keyword(Keyword::Integer),
-            Token::Identifier("test_var".to_string()),
-            Token::Equals,
-            Token::Identifier("test_func".to_string()),
-            Token::OpenParan,
-            Token::CloseParan,
-            Token::Semicolon,
-            Token::Keyword(Keyword::Return),
-            Token::Constant(Value::Integer(0)),
-            Token::Semicolon,
-            Token::CloseCurlyBrace,
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("main".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Integer),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_var".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Equals,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Identifier("test_func".to_string()),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::OpenParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseParan,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Keyword(Keyword::Return),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Constant(Value::Integer(0)),
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::Semicolon,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
+            (
+                Token::CloseCurlyBrace,
+                TokenMetadata {
+                    file_name: "test".to_string(),
+                    line: 1,
+                },
+            ),
         ];
 
         let expected = vec![ir::Function(
