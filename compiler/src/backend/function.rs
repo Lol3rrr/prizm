@@ -35,6 +35,7 @@ pub fn generate(
     let (var_offsets, stack_offset) = variables::get_offset(&func.3);
 
     let mut tmp = vec![
+        asm::Instruction::Label(func.0.clone()),
         // Store the Previous FP(r14)/SP(r15) on the Stack
         asm::Instruction::Push(14),
         asm::Instruction::Push(15),
@@ -58,11 +59,34 @@ pub fn generate(
         ));
     }
 
-    // Move the Stack "stack_offset" bytes down again (r15 + offset)
-    tmp.push(asm::Instruction::AddI(15, stack_offset));
-    // Restore the Previous FP and SP
-    tmp.push(asm::Instruction::Pop(15));
-    tmp.push(asm::Instruction::Pop(14));
+    let stack_reset = vec![
+        asm::Instruction::AddI(15, stack_offset), // Move the Stack back
+        asm::Instruction::Pop(15),                // Restore the SP
+        asm::Instruction::Pop(14),                // Restore the FP
+    ];
+    let stack_reset_size = stack_reset.len();
+
+    let mut ret_instrs = Vec::with_capacity(1);
+    for (index, tmp_instr) in tmp.iter().enumerate() {
+        match tmp_instr {
+            asm::Instruction::Rts => {
+                ret_instrs.push(index);
+            }
+            _ => {}
+        };
+    }
+
+    while ret_instrs.len() > 0 {
+        let mut index = ret_instrs.remove(0);
+        for other in ret_instrs.iter_mut() {
+            *other += stack_reset_size;
+        }
+
+        for tmp_stack in stack_reset.iter() {
+            tmp.insert(index, tmp_stack.clone());
+            index += 1;
+        }
+    }
 
     let raw_offset = result.len() as u32 * 2;
     offsets.insert(func.0.clone(), raw_offset + MAPPING_START);

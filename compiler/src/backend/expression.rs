@@ -42,25 +42,11 @@ pub fn generate(
                 result
             }
             _ => {
-                let call_target = match offsets.get(name) {
-                    Some(o) => *o,
-                    None => {
-                        function::generate(
-                            functions.get(name).unwrap(),
-                            pre_asm,
-                            offsets,
-                            functions,
-                        );
-
-                        *offsets.get(name).unwrap()
-                    }
-                };
-
                 // TODO
                 // Generate arguments
 
                 let mut result = Vec::new();
-                result.append(&mut internal::funcs::call(call_target));
+                result.append(&mut internal::funcs::call(name.to_string()));
 
                 result
             }
