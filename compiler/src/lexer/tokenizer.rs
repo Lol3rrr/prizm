@@ -8,7 +8,7 @@ pub fn tokenize(content: &str, file_name: String) -> Vec<(Token, TokenMetadata)>
 
     for tmp_char in content.chars() {
         match tmp_char {
-            ' ' | '\n' => {
+            ' ' | '\t' | '\n' => {
                 let raw_word = &content[last_char..current];
                 if let Some(parsed_word) = word::parse(raw_word) {
                     result.push((
@@ -22,13 +22,9 @@ pub fn tokenize(content: &str, file_name: String) -> Vec<(Token, TokenMetadata)>
 
                 last_char = current + 1;
 
-                match tmp_char {
-                    ' ' => {}
-                    '\n' => {
-                        line += 1;
-                    }
-                    _ => {}
-                };
+                if tmp_char == '\n' {
+                    line += 1;
+                }
             }
             ';' | '(' | ')' | '{' | '}' | '/' | '*' | '&' | ',' | '=' | '+' | '-' | '<' | '>' => {
                 let raw_word = &content[last_char..current];

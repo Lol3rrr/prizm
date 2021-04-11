@@ -62,7 +62,7 @@ pub fn generate(
                 // "Popping" all the Arguments from the Stack without storing
                 // them anywhere
                 for _ in 0..arg_count {
-                    result.push(asm::Instruction::AddI(15, (4 ^ 0xff) + 1));
+                    result.push(asm::Instruction::AddI(15, 4));
                 }
 
                 result
