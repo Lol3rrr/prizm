@@ -42,11 +42,28 @@ pub fn generate(
                 result
             }
             _ => {
-                // TODO
-                // Generate arguments
-
                 let mut result = Vec::new();
-                result.append(&mut internal::funcs::call(name.to_string()));
+
+                let arg_count = exps.len();
+                // Generate arguments
+                for arg_exp in exps.iter().rev() {
+                    result.extend(generate(arg_exp, pre_asm, offsets, functions, vars));
+                    result.push(asm::Instruction::Push(0));
+                }
+
+                // Save Previous PR
+                result.push(asm::Instruction::PushPR);
+                // Jump-To-Subroutine to actually execute function#
+                result.push(asm::Instruction::JsrLabel(name.to_string()));
+                result.push(asm::Instruction::Nop);
+                // Restore Previous PR
+                result.push(asm::Instruction::PopPR);
+
+                // "Popping" all the Arguments from the Stack without storing
+                // them anywhere
+                for _ in 0..arg_count {
+                    result.push(asm::Instruction::AddI(15, (4 ^ 0xff) + 1));
+                }
 
                 result
             }

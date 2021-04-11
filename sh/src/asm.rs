@@ -52,6 +52,7 @@ pub enum Instruction {
     Jmp(u8),
     JmpLabel(String),
     Jsr(u8),
+    JsrLabel(String),
     Rts,
     Shll(u8),
     Shll2(u8),
@@ -117,6 +118,7 @@ impl Instruction {
             Instruction::BRA(disp) => {
                 [0xa0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0x00ff) as u8]
             }
+            Instruction::BSR(disp) => [0xb0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0xff) as u8],
             Instruction::Jmp(target) => [0x40 | (target & 0x0f), 0x2b],
             Instruction::Jsr(target) => [0x40 | (target & 0x0f), 0x0b],
             Instruction::Rts => [0x00, 0x0b],

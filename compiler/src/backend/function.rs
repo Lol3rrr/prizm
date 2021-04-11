@@ -32,7 +32,7 @@ pub fn generate(
 ) {
     func.pretty_print();
 
-    let (var_offsets, stack_offset) = variables::get_offset(&func.3);
+    let (var_offsets, stack_offset) = variables::get_offset(&func);
 
     let mut tmp = vec![
         asm::Instruction::Label(func.0.clone()),
@@ -43,11 +43,11 @@ pub fn generate(
 
     if stack_offset > 0 {
         // Move the Stack "stack_offset" bytes up (r15 - offset)
-        result.push(asm::Instruction::AddI(15, (stack_offset ^ 0xff) + 1));
+        tmp.push(asm::Instruction::AddI(15, (stack_offset ^ 0xff) + 1));
     }
 
     // Move the new StackPtr(r15) into FP(r14) as base offset
-    result.push(asm::Instruction::Mov(14, 15));
+    tmp.push(asm::Instruction::Mov(14, 15));
 
     for statement in func.3.iter() {
         tmp.append(&mut statement::generate(
