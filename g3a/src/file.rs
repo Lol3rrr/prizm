@@ -1,11 +1,18 @@
-use crate::util;
 use crate::{eactivity, image, localization, ParseError};
+use crate::{error::FormatError, util};
 
 use std::convert::TryInto;
 
 const HEADER_IDENTIFIER: [u8; 14] = [
     0xAA, 0xAC, 0xBD, 0xAF, 0x90, 0x88, 0x9A, 0x8D, 0xD3, 0xFF, 0xFE, 0xFF, 0xFE, 0xFF,
 ];
+const CHECKSUM_1: usize = 0x0020;
+const EXECUTABLE_SIZE: usize = 0x002E;
+const SHORT_NAME: usize = 0x0040;
+const INTERNAL_NAME: usize = 0x0060;
+const UNSELECTED_ICON: usize = 0x1000;
+const SELECTED_ICON: usize = 0x4000;
+const EXECUTABLE_SECTION: usize = 0x7000;
 
 #[derive(Debug)]
 pub struct File {
@@ -31,7 +38,7 @@ impl File {
         }
 
         if content[0x000f] != 0xfe {
-            return Err(ParseError::WrongFormat);
+            return Err(ParseError::WrongFormat(FormatError::WrongControlBytes));
         }
 
         let raw_file_size = [
@@ -43,36 +50,36 @@ impl File {
 
         let file_size = u32::from_be_bytes(raw_file_size);
 
-        let raw_checksum = &content[0x0020..0x0024];
+        let raw_checksum = &content[CHECKSUM_1..CHECKSUM_1 + 4];
         let checksum = u32::from_be_bytes(raw_checksum.try_into().unwrap());
 
         if content[0x0024..0x0026] != [0x01, 0x01] {
-            return Err(ParseError::WrongFormat);
+            return Err(ParseError::WrongFormat(FormatError::WrongControlBytes));
         }
 
-        let raw_executable_size = &content[0x002E..0x0032];
+        let raw_executable_size = &content[EXECUTABLE_SIZE..EXECUTABLE_SIZE + 4];
         let executable_size = u32::from_be_bytes(raw_executable_size.try_into().unwrap());
 
-        let raw_short_name = &content[0x0040..0x005c];
+        let raw_short_name = &content[SHORT_NAME..SHORT_NAME + 0x1c];
         let short_name = match String::from_utf8(raw_short_name.to_vec()) {
             Ok(s) => s,
-            Err(_) => return Err(ParseError::WrongFormat),
+            Err(_) => return Err(ParseError::WrongFormat(FormatError::InvalidShortName)),
         };
 
-        let raw_internal_name = &content[0x0060..0x006b];
+        let raw_internal_name = &content[INTERNAL_NAME..INTERNAL_NAME + 0x0b];
         let internal_name = match String::from_utf8(raw_internal_name.to_vec()) {
             Ok(s) => s,
-            Err(_) => return Err(ParseError::WrongFormat),
+            Err(_) => return Err(ParseError::WrongFormat(FormatError::InvalidInternalName)),
         };
 
-        let raw_icon_unselected = &content[0x1000..=0x3dff];
-        let icon_unselected = image::Image::parse(raw_icon_unselected);
+        let raw_icon_unselected = &content[UNSELECTED_ICON..UNSELECTED_ICON + 0x2e00];
+        let icon_unselected = image::Image::parse(raw_icon_unselected)?;
 
-        let raw_icon_selected = &content[0x4000..=0x6dff];
-        let icon_selected = image::Image::parse(raw_icon_selected);
+        let raw_icon_selected = &content[SELECTED_ICON..SELECTED_ICON + 0x2e00];
+        let icon_selected = image::Image::parse(raw_icon_selected)?;
 
-        let executable_end: usize = 0x7000 + executable_size as usize;
-        let raw_executable_section = &content[0x7000..executable_end];
+        let executable_end: usize = EXECUTABLE_SECTION + executable_size as usize;
+        let raw_executable_section = &content[EXECUTABLE_SECTION..executable_end];
 
         let raw_checksum_copy = &content[executable_end..executable_end + 4];
         let checksum_copy = u32::from_be_bytes(raw_checksum_copy.try_into().unwrap());

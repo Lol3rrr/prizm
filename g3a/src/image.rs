@@ -3,6 +3,25 @@ use image::{io::Reader as ImageReader, DynamicImage, ImageBuffer, Rgb};
 mod pixel;
 pub use pixel::Pixel;
 
+const IMAGE_ROWS: usize = 64;
+const IMAGE_COLUMNS: usize = 92;
+const IMAGE_SIZE: usize = IMAGE_ROWS * IMAGE_COLUMNS * 2;
+
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidSize(usize),
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidSize(other) => {
+                write!(f, "Invalid Size, expected: {} got {}", IMAGE_SIZE, other)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Image {
     pixels: Vec<Vec<Pixel>>,
@@ -24,12 +43,17 @@ impl Image {
         Self { pixels: rows }
     }
 
-    pub fn parse(raw: &[u8]) -> Self {
-        let mut rows = Vec::with_capacity(64);
-        for y in 0..64 {
-            let mut current_row = Vec::with_capacity(92);
-            for x in 0..92 {
-                let index = (y * 92 + x) * 2;
+    pub fn parse(raw: &[u8]) -> Result<Self, ParseError> {
+        let raw_len = raw.len();
+        if raw_len != IMAGE_SIZE {
+            return Err(ParseError::InvalidSize(raw_len));
+        }
+
+        let mut rows = Vec::with_capacity(IMAGE_ROWS);
+        for y in 0..IMAGE_ROWS {
+            let mut current_row = Vec::with_capacity(IMAGE_COLUMNS);
+            for x in 0..IMAGE_COLUMNS {
+                let index = (y * IMAGE_COLUMNS + x) * 2;
                 let data = [raw[index], raw[index + 1]];
 
                 current_row.push(Pixel::parse(&data));
@@ -38,15 +62,15 @@ impl Image {
             rows.push(current_row);
         }
 
-        Self { pixels: rows }
+        Ok(Self { pixels: rows })
     }
 
-    pub fn serialize(&self) -> [u8; 64 * 92 * 2] {
-        let mut result = [0; 64 * 92 * 2];
+    pub fn serialize(&self) -> [u8; IMAGE_SIZE] {
+        let mut result = [0; IMAGE_SIZE];
 
         for (y, row) in self.pixels.iter().enumerate() {
             for (x, pix) in row.iter().enumerate() {
-                let first = (y * 92 + x) * 2;
+                let first = (y * IMAGE_COLUMNS + x) * 2;
                 let second = first + 1;
 
                 let pix_data = pix.serialize();

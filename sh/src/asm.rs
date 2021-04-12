@@ -1,7 +1,19 @@
+mod deserialize;
+mod serialize;
+
+/// Operands are used to specify the Way Moves should
+/// Operate and where their Targets and Sources are,
+/// as they can be (mostly) any kombination of these
 #[derive(Debug, PartialEq, Clone)]
 pub enum Operand {
+    /// A simple Register, so the Value will be loaded/stored
+    /// directly
     Register(u8),
+    /// Loads the Value from the Memory-Location specified
+    /// by the Value in the given Register
     AtRegister(u8),
+    // TODO
+    // Good Docs to describe this Feature
     Displacement8(u8),
 }
 
@@ -9,32 +21,56 @@ pub enum Operand {
 /// (Target, Source)
 #[derive(Debug, PartialEq, Clone)]
 pub enum Instruction {
+    /// A simple Nop, does nothing
     Nop,
+    /// Moves the Value of Register 2 into Register 1
     Mov(u8, u8),
+    /// (Target-Register, Value)
+    /// Stores the Value in the Target-Register. The Value
+    /// will be sign-extended and can therefore only be between
+    /// -128 and +127
     MovI(u8, u8),
+    /// Moves a Byte from the Source to the Destination
     MovB(Operand, Operand),
+    /// Moves a Word(16bit) from the Source to the Destination
     MovW(Operand, Operand),
+    /// Moves a Long(32bit) from the Source to the Destination
     MovL(Operand, Operand),
+    // TODO
+    // Add Documentation
     STS(u8),
+    /// Pushes the value in the given Register on the Stack
     Push(u8),
     /// In the Format of (Source, StackRegister)
     PushOther(u8, u8),
+    /// Pushes the PR-Control-Register onto the Stack
     PushPR, // STS.L
     /// The Register that contains the StackPtr
     PushPROther(u8), // STS.L,
+    /// Pops the top most Element from the Stack and stores
+    /// it in the given Register
     Pop(u8),
     /// In the Format of (Destination, StackRegister)
     PopOther(u8, u8),
+    /// Pops the top most value from the Stack and stores it
+    /// in the PR-Control-Register
     PopPR, // LDS.L
     /// The Register that contains the StackPtr
     PopPROther(u8),
+    /// XORs the given two Registers
     Xor(u8, u8),
+    /// Adds the two Registers together
     Add(u8, u8),
+    /// Adds the Value directly to the given Register.
+    /// The Value will be sign-extended before it is added
+    /// so it can only represent values in the Range from
+    /// -128 to +127
     AddI(u8, u8),
     /// Multiplies the two Registers together and stores
     /// the resulting value in the MACL Register
     /// Rn + Rm -> MACL
     MulL(u8, u8),
+    /// First == Second
     CmpEq(u8, u8),
     /// First >= Second (unsigned)
     CmpHs(u8, u8),
@@ -44,174 +80,91 @@ pub enum Instruction {
     CmpHi(u8, u8),
     /// First > Second (signed)
     CmpGt(u8, u8),
+    /// This is not an actual Instruction, but is
+    /// used to tell the Assembler where something
+    /// starts
+    /// The Assembler will remove this Instruction
+    /// before generating the final ByteCode
     Label(String),
+    /// Branches if T = 1, the previous comparison
+    /// evaluted to true
     BT(u8),
+    /// Branches if T = 0, the previous comparison
+    /// evaluted to false
     BF(u8),
+    /// Unconditional Branch
     BRA(u16),
+    /// Stores PC + 4 into PR and then performs an
+    /// unconditional Branch
     BSR(u16),
+    /// Jumps to the Address stored in the given Register
+    /// and execution will resume there
     Jmp(u8),
+    /// This is not an actual Instruction, but a
+    /// simplification to deal with Jumps in combination
+    /// with the Label-Instruction.
+    /// This Instruction will be replaced with the
+    /// right combination of different Instructions,
+    /// as determined by the Assembler
     JmpLabel(String),
+    /// Stores the PC + 4 into PR, to inform the called
+    /// code where execution should resume afterwards.
+    /// Then Jumps to the Address stored in the given
+    /// Register
     Jsr(u8),
+    /// This Instruction acts basically just like
+    /// the `JmpLabel`-Instruction, but stores the
+    /// Address where execution should return to in
+    /// PR
     JsrLabel(String),
+    /// Returns from a Subroutine
+    /// PR -> PC
     Rts,
+    /// Shifts the Value in the Register by 1
+    /// to the left
     Shll(u8),
+    /// Shifts the Value in the Register by 2
+    /// to the left
     Shll2(u8),
+    /// Shifts the Value in the Register by 8
+    /// to the left
     Shll8(u8),
+    /// Shifts the Value in the Register by 16
+    /// to the left
     Shll16(u8),
+    /// Shifts the Value in the Register by 1
+    /// to the right
     Shlr(u8),
+    /// Shifts the Value in the Register by 2
+    /// to the right
     Shlr2(u8),
+    /// Shifts the Value in the Register by 8
+    /// to the right
     Shlr8(u8),
+    /// Shifts the Value in the Register by 16
+    /// to the right
     Shlr16(u8),
     /// Loads the MACL Register into the given Register
     StsMacl(u8),
     /// Pushes the MACL Register onto the Stack,
     /// The given Register is used as the StackPtr (usually R15)
     StsLMacl(u8),
+    /// Used to store some literal value or here not documented instruction
+    /// This will simply be returned as is, so the user is responsible for
+    /// the correctness of this instruction
     Literal(u8, u8),
 }
 
 impl Instruction {
+    /// Converts the given Instruction into its appropriate
+    /// ByteCode Variant that can then be run on the Calculator
     pub fn to_byte(&self) -> [u8; 2] {
-        match self {
-            Instruction::Nop => [0x00, 0x09],
-            Instruction::Mov(target, source) => {
-                [0x60 | (target & 0x0f), 0x03 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovI(target, value) => [0xe0 | (target & 0x0f), *value],
-            Instruction::MovW(Operand::Register(target), Operand::AtRegister(source)) => {
-                [0x60 | (target & 0x0f), 0x01 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovL(Operand::Register(target), Operand::AtRegister(source)) => {
-                [0x60 | (target & 0x0f), 0x02 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovB(Operand::AtRegister(target), Operand::Register(source)) => {
-                [0x20 | (target & 0x0f), 0x00 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovW(Operand::AtRegister(target), Operand::Register(source)) => {
-                [0x20 | (target & 0x0f), 0x01 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovL(Operand::AtRegister(target), Operand::Register(source)) => {
-                [0x20 | (target & 0x0f), 0x02 | ((source << 4) & 0xf0)]
-            }
-            Instruction::MovW(Operand::Register(target), Operand::Displacement8(disp)) => {
-                [0x90 | (target & 0x0f), *disp]
-            }
-            Instruction::MovL(Operand::Register(target), Operand::Displacement8(disp)) => {
-                [0xd0 | (target & 0x0f), *disp]
-            }
-            Instruction::Push(register) => [0x2f, 0x06 | ((register << 4) & 0xf0)],
-            Instruction::PushPR => [0x4f, 0x22],
-            Instruction::Pop(register) => [0x60 | (register & 0x0f), 0xf6],
-            Instruction::PopPR => [0x4f, 0x26],
-            Instruction::Xor(target, other) => {
-                [0x20 | (target & 0x0f), 0x0a | ((other << 4) & 0xf0)]
-            }
-            Instruction::Add(target, other) => {
-                [0x30 | (target & 0x0f), 0x0c | ((other << 4) & 0xf0)]
-            }
-            Instruction::AddI(target, value) => [0x70 | (target & 0x0f), *value],
-            Instruction::MulL(first, second) => [0x00 | (first & 0x0f), (second << 4) | 0x07],
-            Instruction::CmpEq(left, right) => [0x30 | (left & 0x0f), (right << 4) | 0x00],
-            Instruction::CmpHs(left, right) => [0x30 | (left & 0x0f), (right << 4) | 0x02],
-            Instruction::CmpHi(left, right) => [0x30 | (left & 0x0f), (right << 4) | 0x06],
-            Instruction::BT(disp) => [0x89, *disp],
-            Instruction::BRA(disp) => {
-                [0xa0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0x00ff) as u8]
-            }
-            Instruction::BSR(disp) => [0xb0 | (((disp & 0x0f00) >> 8) as u8), (disp & 0xff) as u8],
-            Instruction::Jmp(target) => [0x40 | (target & 0x0f), 0x2b],
-            Instruction::Jsr(target) => [0x40 | (target & 0x0f), 0x0b],
-            Instruction::Rts => [0x00, 0x0b],
-            Instruction::Shll(target) => [0x40 | (target & 0x0f), 0x00],
-            Instruction::Shll2(target) => [0x40 | (target & 0x0f), 0x08],
-            Instruction::Shll8(target) => [0x40 | (target & 0x0f), 0x18],
-            Instruction::Shll16(target) => [0x40 | (target & 0x0f), 0x28],
-            Instruction::Shlr(target) => [0x40 | (target & 0x0f), 0x01],
-            Instruction::Shlr2(target) => [0x40 | (target & 0x0f), 0x09],
-            Instruction::Shlr8(target) => [0x40 | (target & 0x0f), 0x19],
-            Instruction::Shlr16(target) => [0x40 | (target & 0x0f), 0x29],
-            Instruction::StsMacl(target) => [0x00 | (target & 0x0f), 0x1a],
-            Instruction::StsLMacl(stack) => [0x40 | (stack & 0x0f), 0x12],
-            Instruction::Literal(first, second) => [*first, *second],
-            _ => unimplemented!("Combination {:?} is not yet implemented", self),
-        }
+        serialize::serialize(self)
     }
 
+    /// Parses the given 16-Bit-Instruction
     pub fn parse(raw: u16) -> Self {
-        let bytes = raw.to_be_bytes();
-        let nibbles = [
-            (bytes[0] & 0xf0) >> 4,
-            bytes[0] & 0x0f,
-            (bytes[1] & 0xf0) >> 4,
-            bytes[1] & 0x0f,
-        ];
-
-        match (nibbles[0], nibbles[1], nibbles[2], nibbles[3]) {
-            (0x0, 0x0, 0x0, 0x9) => Self::Nop,
-
-            (0x6, n_reg, m_reg, 0x3) => Self::Mov(n_reg, m_reg),
-            (0xe, n_reg, val_1, val_2) => Self::MovI(n_reg, (val_1 << 4) | val_2),
-            (0x9, n_reg, d_1, d_2) => Self::MovW(
-                Operand::Register(n_reg),
-                Operand::Displacement8((d_1 << 4) | d_2),
-            ),
-            (0xd, n_reg, d_1, d_2) => Self::MovL(
-                Operand::Register(n_reg),
-                Operand::Displacement8((d_1 << 4) | d_2),
-            ),
-            (0x6, n_reg, m_reg, 0x1) => {
-                Self::MovW(Operand::Register(n_reg), Operand::AtRegister(m_reg))
-            }
-            (0x6, n_reg, m_reg, 0x2) => {
-                Self::MovL(Operand::Register(n_reg), Operand::AtRegister(m_reg))
-            }
-            (0x2, n_reg, m_reg, 0x0) => {
-                Self::MovB(Operand::AtRegister(n_reg), Operand::Register(m_reg))
-            }
-            (0x2, n_reg, m_reg, 0x1) => {
-                Self::MovW(Operand::AtRegister(n_reg), Operand::Register(m_reg))
-            }
-            (0x2, n_reg, m_reg, 0x2) => {
-                Self::MovL(Operand::AtRegister(n_reg), Operand::Register(m_reg))
-            }
-            (0x6, n_reg, m_reg, 0x6) => Self::PopOther(n_reg, m_reg),
-            (0x4, n_reg, 0x2, 0x6) => Self::PopPROther(n_reg),
-            (0x2, n_reg, m_reg, 0x6) => Self::PushOther(m_reg, n_reg),
-            (0x4, n_reg, 0x2, 0x2) => Self::PushPROther(n_reg),
-            (0x0, n_reg, 0x1, 0xa) => Self::StsMacl(n_reg),
-
-            (0x8, 0xb, d_1, d_2) => Self::BF((d_1 << 4) | d_2),
-            (0x8, 0x9, d_1, d_2) => Self::BT((d_1 << 4) | d_2),
-            (0xa, d_1, d_2, d_3) => {
-                Self::BRA(((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16))
-            }
-            (0xb, d_1, d_2, d_3) => {
-                Self::BSR(((d_1 as u16) << 8) | ((d_2 as u16) << 4) | (d_3 as u16))
-            }
-            (0x4, m_reg, 0x2, 0xb) => Self::Jmp(m_reg),
-            (0x4, m_reg, 0x0, 0xb) => Self::Jsr(m_reg),
-            (0x0, 0x0, 0x0, 0xb) => Self::Rts,
-
-            (0x3, n_reg, m_reg, 0x0) => Self::CmpEq(n_reg, m_reg),
-            (0x3, n_reg, m_reg, 0x2) => Self::CmpHs(n_reg, m_reg),
-            (0x3, n_reg, m_reg, 0x6) => Self::CmpHi(n_reg, m_reg),
-
-            (0x3, n_reg, m_reg, 0xc) => Self::Add(n_reg, m_reg),
-            (0x7, n_reg, val_1, val_2) => Self::AddI(n_reg, (val_1 << 4) | val_2),
-            (0x0, n_reg, m_reg, 0x7) => Self::MulL(n_reg, m_reg),
-
-            (0x4, n_reg, 0x0, 0x0) => Self::Shll(n_reg),
-            (0x4, n_reg, 0x0, 0x8) => Self::Shll2(n_reg),
-            (0x4, n_reg, 0x1, 0x8) => Self::Shll8(n_reg),
-            (0x4, n_reg, 0x2, 0x8) => Self::Shll16(n_reg),
-            (0x4, n_reg, 0x0, 0x1) => Self::Shlr(n_reg),
-            (0x4, n_reg, 0x0, 0x9) => Self::Shlr2(n_reg),
-            (0x4, n_reg, 0x1, 09) => Self::Shlr8(n_reg),
-            (0x4, n_reg, 0x2, 0x9) => Self::Shlr16(n_reg),
-            (0x2, n_reg, m_reg, 0xa) => Self::Xor(n_reg, m_reg),
-
-            (p1, p2, p3, p4) => Self::Literal((p1 << 4) | p2, (p3 << 4) | p4),
-        }
+        deserialize::deserialize(raw)
     }
 }
 
