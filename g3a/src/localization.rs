@@ -1,5 +1,19 @@
 use crate::util::write_string;
 
+// These are just some predefined offsets for the
+// different Languages
+const ENGLISH_OFFSET: usize = 0x6b;
+const SPANISH_OFFSET: usize = 0x83;
+const GERMAN_OFFSET: usize = 0x9b;
+const FRENCH_OFFSET: usize = 0xb3;
+const PORTUGUESE_OFFSET: usize = 0xcb;
+const CHINESE_OFFSET: usize = 0xe3;
+const TEXT_SIZE: usize = 0x18;
+
+const EACTIVITY_OFFSET: usize = 0x12b;
+const VERSION_OFFSET: usize = 0x130;
+const DATE_OFFSET: usize = 0x13c;
+
 #[derive(Debug)]
 pub enum LocalizationError {
     MalformedInput,
@@ -27,12 +41,12 @@ fn parse_string(input: Vec<u8>) -> Result<String, LocalizationError> {
 
 impl Localized {
     pub fn parse(content: &[u8]) -> Result<Self, LocalizationError> {
-        let raw_english = &content[0x006b..0x0083];
-        let raw_spanish = &content[0x0083..0x009b];
-        let raw_german = &content[0x009b..0x00b3];
-        let raw_french = &content[0x00b3..0x00cb];
-        let raw_portuguese = &content[0x00cb..0x00e3];
-        let raw_chinese = &content[0x00e3..0x00fb];
+        let raw_english = &content[ENGLISH_OFFSET..ENGLISH_OFFSET + TEXT_SIZE];
+        let raw_spanish = &content[SPANISH_OFFSET..SPANISH_OFFSET + TEXT_SIZE];
+        let raw_german = &content[GERMAN_OFFSET..GERMAN_OFFSET + TEXT_SIZE];
+        let raw_french = &content[FRENCH_OFFSET..FRENCH_OFFSET + TEXT_SIZE];
+        let raw_portuguese = &content[PORTUGUESE_OFFSET..PORTUGUESE_OFFSET + TEXT_SIZE];
+        let raw_chinese = &content[CHINESE_OFFSET..CHINESE_OFFSET + TEXT_SIZE];
 
         let english = parse_string(raw_english.to_vec())?;
         let spanish = parse_string(raw_spanish.to_vec())?;
@@ -41,11 +55,11 @@ impl Localized {
         let portuguese = parse_string(raw_portuguese.to_vec())?;
         let chinese = parse_string(raw_chinese.to_vec())?;
 
-        let raw_eactivity = content[0x012b];
+        let raw_eactivity = content[EACTIVITY_OFFSET];
         let eactivity = raw_eactivity != 0;
 
-        let raw_version = &content[0x0130..0x013c];
-        let raw_date = &content[0x013c..0x014a];
+        let raw_version = &content[VERSION_OFFSET..VERSION_OFFSET + 0xc];
+        let raw_date = &content[DATE_OFFSET..DATE_OFFSET + 0xe];
 
         let version = parse_string(raw_version.to_vec())?;
         let date = parse_string(raw_date.to_vec())?;
@@ -63,7 +77,10 @@ impl Localized {
         })
     }
 
-    pub fn serialize(&self, buf: &mut [u8]) {
+    /// Serializes the Localization related stuff
+    pub fn serialize(&self) -> [u8; 0xdf] {
+        let mut buf = [0; 0xdf];
+
         write_string(&mut buf[0x0..0x18], &self.english);
         write_string(&mut buf[0x18..0x30], &self.spanish);
         write_string(&mut buf[0x30..0x48], &self.german);
@@ -79,6 +96,8 @@ impl Localized {
 
         write_string(&mut buf[0xc5..0xd1], &self.version);
         write_string(&mut buf[0xd1..0xdf], &self.date);
+
+        buf
     }
 }
 
@@ -113,9 +132,7 @@ mod tests {
             48, 46, 49, 50, 53, 48,
         ];
 
-        let mut outbuf = [0; 0xdf];
-
-        localized.serialize(&mut outbuf);
-        assert_eq!(expected, outbuf);
+        let output = localized.serialize();
+        assert_eq!(expected, output);
     }
 }

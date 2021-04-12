@@ -26,8 +26,9 @@ fn main() {
     let mut breakpoints: HashSet<u32> = HashSet::new();
 
     let mut mock_input = MockInput::new(vec![0]);
+    let mut mock_display = emulator::MockDisplay::new();
 
-    let mut em = Emulator::new(file, &mut mock_input);
+    let mut em = Emulator::new(file, &mut mock_input, &mut mock_display);
     loop {
         let mut cli_in = String::new();
         stdout().write(&[b'>']).expect("Writing to Stdout");

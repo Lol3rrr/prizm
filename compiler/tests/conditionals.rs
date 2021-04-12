@@ -17,11 +17,13 @@ fn simple_condition() {
     let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![]);
+    let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em = emulator::Emulator::new_test_raw(&mut mock_input, compiled, memory);
+    let mut test_em =
+        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
 
     assert!(test_em.run_completion().is_ok());
 

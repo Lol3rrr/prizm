@@ -72,7 +72,8 @@ mod tests {
         let target_pc = (result.len() * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
 
         let mut input = emulator::MockInput::new(vec![]);
-        let mut test_em = emulator::Emulator::new_test(&mut input, result);
+        let mut display = emulator::MockDisplay::new();
+        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
 
         assert!(test_em.run_until(target_pc).is_ok());
 
@@ -91,7 +92,8 @@ mod tests {
         let target_pc = (result.len() * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
 
         let mut input = emulator::MockInput::new(vec![]);
-        let mut test_em = emulator::Emulator::new_test(&mut input, result);
+        let mut display = emulator::MockDisplay::new();
+        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
 
         assert!(test_em.run_until(target_pc).is_ok());
 

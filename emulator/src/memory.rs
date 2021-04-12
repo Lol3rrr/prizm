@@ -1,3 +1,5 @@
+use crate::{Display, DisplayBits};
+
 const VRAM: u32 = 0xAC000000;
 
 pub struct Memory {
@@ -40,10 +42,20 @@ impl Memory {
         self.heap.clone()
     }
 
-    fn write_u8(&mut self, addr: u32, value: u8) {
+    fn write_u8<D>(&mut self, addr: u32, value: u8, disp: &mut D)
+    where
+        D: Display,
+    {
         if addr >= VRAM {
             let raw_pixel_addr = addr - VRAM;
-            println!("Writing to VRAM: {}", raw_pixel_addr);
+            let y = (raw_pixel_addr / 2) / 384;
+            let x = (raw_pixel_addr / 2) - y * 384;
+            let part = if raw_pixel_addr % 2 == 0 {
+                DisplayBits::HighBits
+            } else {
+                DisplayBits::LowBits
+            };
+            disp.write_vram_u8(x, y, part, value);
             return;
         }
 
@@ -73,16 +85,19 @@ impl Memory {
             self.heap.resize(expected_size, 0);
         }
     }
-    pub fn write_long(&mut self, addr: u32, value: u32) {
+    pub fn write_long<D>(&mut self, addr: u32, value: u32, disp: &mut D)
+    where
+        D: Display,
+    {
         if addr & 0x3 > 0 {
             panic!("Unaligned Long-Write to Address: x{:X}", addr);
         }
 
         let bytes = value.to_be_bytes();
-        self.write_u8(addr, bytes[0]);
-        self.write_u8(addr + 1, bytes[1]);
-        self.write_u8(addr + 2, bytes[2]);
-        self.write_u8(addr + 3, bytes[3]);
+        self.write_u8(addr, bytes[0], disp);
+        self.write_u8(addr + 1, bytes[1], disp);
+        self.write_u8(addr + 2, bytes[2], disp);
+        self.write_u8(addr + 3, bytes[3], disp);
     }
     pub fn read_long(&mut self, addr: u32) -> u32 {
         let addr_u = addr as usize;
@@ -98,14 +113,17 @@ impl Memory {
         result
     }
 
-    pub fn write_word(&mut self, addr: u32, value: u16) {
+    pub fn write_word<D>(&mut self, addr: u32, value: u16, disp: &mut D)
+    where
+        D: Display,
+    {
         if addr & 0x1 > 0 {
             panic!("Unaligned Word-Write to Address: x{:X}", addr);
         }
 
         let bytes = value.to_be_bytes();
-        self.write_u8(addr, bytes[0]);
-        self.write_u8(addr + 1, bytes[1]);
+        self.write_u8(addr, bytes[0], disp);
+        self.write_u8(addr + 1, bytes[1], disp);
     }
     pub fn read_word(&mut self, addr: u32) -> u16 {
         let addr_u = addr as usize;
@@ -117,7 +135,10 @@ impl Memory {
         u16::from_be_bytes([*byte_1, *byte_2])
     }
 
-    pub fn write_byte(&mut self, addr: u32, byte: u8) {
-        self.write_u8(addr, byte);
+    pub fn write_byte<D>(&mut self, addr: u32, byte: u8, disp: &mut D)
+    where
+        D: Display,
+    {
+        self.write_u8(addr, byte, disp);
     }
 }

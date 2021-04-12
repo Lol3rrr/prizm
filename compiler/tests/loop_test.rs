@@ -16,11 +16,13 @@ fn simple_loop() {
     let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 10]);
+    let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em = emulator::Emulator::new_test_raw(&mut mock_input, compiled, memory);
+    let mut test_em =
+        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
 
     assert!(test_em.run_completion().is_ok());
     assert_eq!(0, mock_input.left_over().len());
@@ -43,11 +45,13 @@ fn nested_loop() {
     let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 25]);
+    let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em = emulator::Emulator::new_test_raw(&mut mock_input, compiled, memory);
+    let mut test_em =
+        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
 
     assert!(test_em.run_completion().is_ok());
     assert_eq!(0, mock_input.left_over().len());
@@ -71,11 +75,13 @@ fn nested_deref() {
     let compiled = compiler::compile(program, "test".to_string());
 
     let mut mock_input = emulator::MockInput::new(vec![0; 25]);
+    let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em = emulator::Emulator::new_test_raw(&mut mock_input, compiled, memory);
+    let mut test_em =
+        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
 
     assert!(test_em.run_completion().is_ok());
 

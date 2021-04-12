@@ -4,6 +4,9 @@ pub use memory::Memory;
 mod input;
 pub use input::MockInput;
 
+mod display;
+pub use display::MockDisplay;
+
 mod instructiontype;
 use instructiontype::InstructionType;
 
@@ -11,41 +14,70 @@ use sh::asm;
 
 pub const CODE_MAPPING_OFFSET: u32 = 0x00300000;
 
-pub struct Emulator<'a, K>
+/// The actual Emulator itself
+pub struct Emulator<'k, 'd, K, D>
 where
     K: Input,
+    D: Display,
 {
     file: Option<g3a::File>,
     memory: Memory,
     pc: u32,
-    input: &'a mut K,
+    input: &'k mut K,
+    display: &'d mut D,
     debug: bool,
 }
 
+/// The Exceptions that could be thrown during
+/// the Execution of Code as a result of wrong
+/// behaviour of the Program
 #[derive(Debug)]
 pub enum Exception {
     UnknownInstruction,
     SlotIllegal,
 }
 
+/// A generic Trait that allows for different
+/// Input-Methods to be used with the emulator
 pub trait Input {
     fn get_key(&mut self);
 }
 
-impl<'a, K> Emulator<'a, K>
+pub enum DisplayBits {
+    HighBits,
+    LowBits,
+}
+
+/// A generic Trait that allows for different "Frontend"
+/// to be used with the emulator
+pub trait Display {
+    /// Resets all the Pixels in the VRAM to white
+    fn clear_vram(&mut self);
+    /// Sets the given Pixel (x, y) to the given Color
+    fn write_vram(&mut self, x: u32, y: u32, color: u16);
+    /// Writes only half of a pixel to the VRAM, the `part` describes
+    /// which half is written to
+    fn write_vram_u8(&mut self, x: u32, y: u32, part: DisplayBits, color: u8);
+    /// Actually draws the current VRAM to screen
+    fn display_vram(&mut self);
+}
+
+impl<'k, 'd, K, D> Emulator<'k, 'd, K, D>
 where
     K: Input,
+    D: Display,
 {
-    pub fn new<'b>(file: g3a::File, input: &'b mut K) -> Self
+    pub fn new<'b, 'c>(file: g3a::File, input: &'b mut K, display: &'c mut D) -> Self
     where
-        'b: 'a,
+        'b: 'k,
+        'c: 'd,
     {
         let mut memory = Memory::new();
         memory.write_register(15, 0x80000);
         memory.write_register(14, 0x80000);
 
         for (i, tmp) in file.executable_code.iter().enumerate() {
-            memory.write_byte(i as u32 + CODE_MAPPING_OFFSET, *tmp);
+            memory.write_byte(i as u32 + CODE_MAPPING_OFFSET, *tmp, display);
         }
 
         Self {
@@ -53,13 +85,19 @@ where
             memory,
             pc: CODE_MAPPING_OFFSET,
             input,
+            display,
             debug: false,
         }
     }
 
-    pub fn new_test<'b>(input: &'b mut K, instructions: Vec<asm::Instruction>) -> Self
+    pub fn new_test<'b, 'c>(
+        input: &'b mut K,
+        display: &'c mut D,
+        instructions: Vec<asm::Instruction>,
+    ) -> Self
     where
-        'b: 'a,
+        'b: 'k,
+        'c: 'd,
     {
         let mut memory = Memory::new();
         memory.write_register(15, 0x80000);
@@ -68,8 +106,8 @@ where
         let mut index = 0;
         for instr in instructions.iter() {
             let data = instr.to_byte();
-            memory.write_byte(index + CODE_MAPPING_OFFSET, data[0]);
-            memory.write_byte(index + CODE_MAPPING_OFFSET + 1, data[1]);
+            memory.write_byte(index + CODE_MAPPING_OFFSET, data[0], display);
+            memory.write_byte(index + CODE_MAPPING_OFFSET + 1, data[1], display);
 
             index += 2;
         }
@@ -79,15 +117,22 @@ where
             memory,
             pc: CODE_MAPPING_OFFSET,
             input,
+            display,
             debug: true,
         }
     }
-    pub fn new_test_raw<'b>(input: &'b mut K, instr: Vec<u8>, mut memory: Memory) -> Self
+    pub fn new_test_raw<'b, 'c>(
+        input: &'b mut K,
+        display: &'c mut D,
+        instr: Vec<u8>,
+        mut memory: Memory,
+    ) -> Self
     where
-        'b: 'a,
+        'b: 'k,
+        'c: 'd,
     {
         for (index, byte) in instr.iter().enumerate() {
-            memory.write_byte(index as u32 + CODE_MAPPING_OFFSET, *byte);
+            memory.write_byte(index as u32 + CODE_MAPPING_OFFSET, *byte, display);
         }
 
         Self {
@@ -95,6 +140,7 @@ where
             memory,
             pc: CODE_MAPPING_OFFSET,
             input,
+            display,
             debug: true,
         }
     }
@@ -167,6 +213,11 @@ where
                     }
                     0x0272 => {
                         println!("Bdisp_AllClr_VRAM System-Call");
+                        self.display.clear_vram();
+                    }
+                    0x025f => {
+                        println!("Bdisp_PutDD_VRAM System-Call");
+                        self.display.display_vram();
                     }
                     _ => {
                         println!("Unknown Syscall: {:x}", syscall);
@@ -201,7 +252,7 @@ where
     }
 
     fn fetch_instruction_type(&mut self, pc: u32) -> InstructionType {
-        InstructionType::parse(self.fetch_instruction(pc))
+        InstructionType::parse(&self.fetch_instruction(pc))
     }
 
     fn print_instr(&self, instr: &asm::Instruction) {
@@ -265,7 +316,7 @@ where
 
                 let target_addr = self.memory.read_register(n_register);
                 let value = self.memory.read_register(m_register) as u8;
-                self.memory.write_byte(target_addr, value);
+                self.memory.write_byte(target_addr, value, self.display);
                 self.pc += 2;
             }
             asm::Instruction::MovW(
@@ -276,7 +327,7 @@ where
 
                 let target_addr = self.memory.read_register(n_register);
                 let value = self.memory.read_register(m_register) as u16;
-                self.memory.write_word(target_addr, value);
+                self.memory.write_word(target_addr, value, self.display);
                 self.pc += 2;
             }
             asm::Instruction::MovL(
@@ -287,7 +338,7 @@ where
 
                 let addr = self.memory.read_register(n_register);
                 let value = self.memory.read_register(m_register);
-                self.memory.write_long(addr, value);
+                self.memory.write_long(addr, value, self.display);
                 self.pc += 2;
             }
             asm::Instruction::PopOther(n_register, m_register) => {
@@ -306,7 +357,7 @@ where
                 n -= 4;
                 self.memory.write_register(n_register, n);
                 self.memory
-                    .write_long(n, self.memory.read_register(m_register));
+                    .write_long(n, self.memory.read_register(m_register), self.display);
                 self.pc += 2;
             }
             asm::Instruction::MovW(
@@ -557,8 +608,11 @@ where
 
                 self.memory
                     .write_register(n_register, self.memory.read_register(n_register) - 4);
-                self.memory
-                    .write_long(self.memory.read_register(n_register), self.memory.pr);
+                self.memory.write_long(
+                    self.memory.read_register(n_register),
+                    self.memory.pr,
+                    self.display,
+                );
                 self.pc += 2;
             }
             asm::Instruction::PopPROther(n_register) => {

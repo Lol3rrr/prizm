@@ -152,7 +152,7 @@ impl File {
         // **
         // Localization Stuff
         // **
-        self.localized.serialize(&mut result[0x006b..0x0170]);
+        result[0x006b..0x014a].copy_from_slice(&self.localized.serialize());
 
         // **
         // EActivity
