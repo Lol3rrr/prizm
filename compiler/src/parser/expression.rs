@@ -27,6 +27,23 @@ where
                     let params = call_params::parse(iter)?;
                     Some(ir::Expression::Call(name.to_owned(), params))
                 }
+                Some((Token::OpenSquareBrace, _)) => {
+                    iter.next();
+
+                    let index = parse(iter)?;
+
+                    match iter.next() {
+                        Some((Token::CloseSquareBrace, _)) => {}
+                        _ => return None,
+                    };
+
+                    Some(ir::Expression::Dereference(Box::new(
+                        ir::Expression::Indexed(
+                            Box::new(ir::Expression::Variable(name.to_owned())),
+                            Box::new(index),
+                        ),
+                    )))
+                }
                 _ => Some(ir::Expression::Variable(name.to_owned())),
             }
         }

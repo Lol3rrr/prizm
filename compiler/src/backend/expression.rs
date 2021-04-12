@@ -139,6 +139,45 @@ pub fn generate(
 
             result
         }
+        ir::Expression::Indexed(root, offset) => {
+            let mut result = Vec::new();
+            // TODO
+            // Replace this constant with a dynamic value based
+            // on the size of the Elements in the Array
+            const ELEMENT_SIZE: u8 = 4;
+
+            result.push(asm::Instruction::Push(1));
+
+            // Generate the Root
+            result.extend(generate(root, pre_asm, offsets, functions, vars));
+            result.push(asm::Instruction::Push(0));
+
+            // Generate the Offset
+            result.extend(generate(offset, pre_asm, offsets, functions, vars));
+            result.push(asm::Instruction::MovI(1, ELEMENT_SIZE));
+            result.push(asm::Instruction::MulL(0, 1));
+            result.push(asm::Instruction::StsMacl(0));
+
+            // Add them together
+            result.push(asm::Instruction::Pop(1));
+            result.push(asm::Instruction::Add(0, 1));
+
+            result.push(asm::Instruction::Pop(1));
+
+            result
+        }
+        ir::Expression::Dereference(exp) => {
+            let mut result = Vec::new();
+
+            result.extend(generate(exp, pre_asm, offsets, functions, vars));
+            // Replace this MovL with the appropriate Mov depending
+            // on the Alignment of the underlying Datatype
+            let target_operand = asm::Operand::Register(0);
+            let source_operand = asm::Operand::AtRegister(0);
+            result.push(asm::Instruction::MovL(target_operand, source_operand));
+
+            result
+        }
         _ => {
             panic!("Unknown Expression: {:?}", exp);
         }

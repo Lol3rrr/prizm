@@ -4,6 +4,8 @@ pub fn parse(seperator: char) -> Option<Token> {
     match seperator {
         '(' => Some(Token::OpenParan),
         ')' => Some(Token::CloseParan),
+        '[' => Some(Token::OpenSquareBrace),
+        ']' => Some(Token::CloseSquareBrace),
         '{' => Some(Token::OpenCurlyBrace),
         '}' => Some(Token::CloseCurlyBrace),
         ';' => Some(Token::Semicolon),

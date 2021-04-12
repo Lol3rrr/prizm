@@ -43,6 +43,10 @@ pub enum Expression {
     Variable(String),
     Reference(String),
     Dereference(Box<Expression>),
+    /// (Root, Offset)
+    /// The Root is the starting Address of the Array
+    /// The Offset is the Index of the Element in the Array
+    Indexed(Box<Expression>, Box<Expression>),
     Operation(OP, Vec<Expression>),
     Call(String, Vec<Expression>),
     Empty,

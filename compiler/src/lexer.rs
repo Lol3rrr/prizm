@@ -26,6 +26,8 @@ pub enum Token {
     Keyword(Keyword),
     OpenParan,
     CloseParan,
+    OpenSquareBrace,
+    CloseSquareBrace,
     OpenCurlyBrace,
     CloseCurlyBrace,
     Semicolon,

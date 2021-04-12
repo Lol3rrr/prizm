@@ -180,6 +180,41 @@ where
 
                     Some(vec![ir::Statement::Assignment(name.to_owned(), expression)])
                 }
+                Some((Token::OpenSquareBrace, _)) => {
+                    let index_exp = expression::parse(iter)?;
+
+                    match iter.peek() {
+                        Some((Token::CloseSquareBrace, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
+
+                    match iter.next() {
+                        Some((Token::Equals, _)) => {}
+                        _ => return None,
+                    };
+
+                    let exp = match expression::parse(iter) {
+                        Some(e) => e,
+                        None => return None,
+                    };
+
+                    match iter.peek() {
+                        Some((Token::Semicolon, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
+
+                    Some(vec![ir::Statement::DerefAssignment(
+                        ir::Expression::Indexed(
+                            Box::new(ir::Expression::Variable(name.to_owned())),
+                            Box::new(index_exp),
+                        ),
+                        exp,
+                    )])
+                }
                 Some((Token::OpenParan, _)) => {
                     let params = match call_params::parse(iter) {
                         Some(p) => p,
