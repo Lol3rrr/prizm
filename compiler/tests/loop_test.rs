@@ -1,12 +1,12 @@
 use compiler;
-use emulator;
+use emulator::{self, Key, Modifier};
 
 #[test]
 fn simple_loop() {
     let program = "int main() {
         int key = 0;
 
-        for (int i = 0; i < 10; i = i + 1) {
+        for (int i = 0; i < 2; i = i + 1) {
             __syscall(3755, &key, 0, 0, 0);
         }
 
@@ -15,7 +15,10 @@ fn simple_loop() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![0; 10]);
+    let mut mock_input = emulator::MockInput::new(vec![
+        (Key::Number(0), Modifier::None),
+        (Key::Number(0), Modifier::None),
+    ]);
     let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
@@ -33,8 +36,8 @@ fn nested_loop() {
     let program = "int main() {
         int key = 0;
 
-        for (int i = 0; i < 5; i = i + 1) {
-            for (int j = 0; j < 5; j = j + 1) {
+        for (int i = 0; i < 2; i = i + 1) {
+            for (int j = 0; j < 2; j = j + 1) {
                 __syscall(3755, &key, 0, 0, 0);
             }
         }
@@ -44,7 +47,12 @@ fn nested_loop() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![0; 25]);
+    let mut mock_input = emulator::MockInput::new(vec![
+        (Key::Number(0), Modifier::None),
+        (Key::Number(0), Modifier::None),
+        (Key::Number(0), Modifier::None),
+        (Key::Number(0), Modifier::None),
+    ]);
     let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
@@ -74,7 +82,7 @@ fn nested_deref() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![0; 25]);
+    let mut mock_input = emulator::MockInput::new(vec![]);
     let mut display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);

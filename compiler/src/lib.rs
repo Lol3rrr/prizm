@@ -2,6 +2,7 @@ use sh::asm;
 
 mod assembler;
 mod backend;
+mod const_eval;
 mod ir;
 mod lexer;
 mod optimizer;

@@ -3,7 +3,7 @@ use std::{
     io::{stdin, stdout, Write},
 };
 
-use emulator::{Emulator, MockInput};
+use emulator::{target, Emulator};
 use g3a;
 
 use structopt::StructOpt;
@@ -25,10 +25,10 @@ fn main() {
 
     let mut breakpoints: HashSet<u32> = HashSet::new();
 
-    let mut mock_input = MockInput::new(vec![0]);
+    let mut cli_input = target::CLIInput::new();
     let mut mock_display = emulator::MockDisplay::new();
 
-    let mut em = Emulator::new(file, &mut mock_input, &mut mock_display);
+    let mut em = Emulator::new(file, &mut cli_input, &mut mock_display);
     loop {
         let mut cli_in = String::new();
         stdout().write(&[b'>']).expect("Writing to Stdout");

@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 use crate::{
-    ir,
+    const_eval, ir,
     lexer::{Keyword, Token, TokenMetadata},
 };
 
@@ -80,20 +80,7 @@ where
                 _ => return None,
             };
 
-            let first = match parse_single(iter) {
-                Some(mut tmp) => {
-                    let first = tmp.remove(0);
-                    match first {
-                        ir::Statement::Declaration(_, _) => {
-                            let mut result = vec![first];
-                            result.append(&mut parse_single(iter).unwrap());
-                            result
-                        }
-                        _ => vec![first],
-                    }
-                }
-                _ => panic!("Unexpected"),
-            };
+            let first = parse_single(iter)?;
 
             let cond = condition::parse(iter).unwrap();
 
@@ -146,19 +133,50 @@ where
             };
 
             let var_name = match iter.peek() {
-                Some((Token::Identifier(raw_name), _)) => raw_name.to_owned(),
+                Some((Token::Identifier(raw_name), _)) => {
+                    iter.next();
+                    raw_name.to_owned()
+                }
                 _ => return None,
             };
 
-            // Removes the next item if its a semicolon
-            match iter.peek() {
-                Some((Token::Semicolon, _)) => {
+            match iter.next() {
+                Some((Token::OpenSquareBrace, _)) => {
+                    let raw_size = expression::parse(iter)?;
+                    let size = const_eval::evaluate(raw_size)?;
                     iter.next();
-                }
-                _ => {}
-            };
+                    iter.next();
 
-            Some(vec![ir::Statement::Declaration(var_name, d_type)])
+                    Some(vec![ir::Statement::Declaration(
+                        var_name,
+                        ir::DataType::Array(Box::new(d_type), size),
+                    )])
+                }
+                Some((Token::Equals, _)) => {
+                    let value = expression::parse(iter)?;
+
+                    // Removes the next item if its a semicolon
+                    match iter.peek() {
+                        Some((Token::Semicolon, _)) => {
+                            iter.next();
+                        }
+                        _ => {}
+                    };
+
+                    Some(vec![
+                        ir::Statement::Declaration(var_name.clone(), d_type),
+                        ir::Statement::Assignment(var_name, value),
+                    ])
+                }
+                Some((Token::Semicolon, _)) => {
+                    Some(vec![ir::Statement::Declaration(var_name, d_type)])
+                }
+                Some((_, metadata)) => {
+                    println!("{:?}", metadata);
+                    None
+                }
+                _ => None,
+            }
         }
         (Token::Identifier(name), _) => {
             iter.next();
@@ -209,7 +227,7 @@ where
 
                     Some(vec![ir::Statement::DerefAssignment(
                         ir::Expression::Indexed(
-                            Box::new(ir::Expression::Variable(name.to_owned())),
+                            Box::new(ir::Expression::Variable(name.clone())),
                             Box::new(index_exp),
                         ),
                         exp,

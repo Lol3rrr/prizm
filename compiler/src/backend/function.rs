@@ -12,6 +12,7 @@ pub enum VariableSize {
     Byte,
     Word,
     Long,
+    Custom(u32),
 }
 #[derive(Debug, PartialEq)]
 pub struct VariableMetaData {

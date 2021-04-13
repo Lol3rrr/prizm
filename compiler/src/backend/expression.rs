@@ -87,21 +87,28 @@ pub fn generate(
         ir::Expression::Variable(var_name) => {
             let var = vars.get(var_name).unwrap();
 
-            let target_op = asm::Operand::Register(0);
-            let source_op = asm::Operand::AtRegister(1);
-            let mov = match var.data_size {
-                function::VariableSize::Byte => asm::Instruction::MovB(target_op, source_op),
-                function::VariableSize::Word => asm::Instruction::MovW(target_op, source_op),
-                function::VariableSize::Long => asm::Instruction::MovL(target_op, source_op),
-            };
+            match var.data_type {
+                ir::DataType::Array(_, _) => {
+                    vec![
+                        // Load FP into R0 (mov R14 -> R0)
+                        asm::Instruction::Mov(0, 14),
+                        // Add the Var-Offset to R0
+                        asm::Instruction::AddI(0, var.offset),
+                    ]
+                }
+                _ => {
+                    let target_op = asm::Operand::Register(0);
+                    let source_op = asm::Operand::AtRegister(1);
 
-            vec![
-                asm::Instruction::Push(1),
-                asm::Instruction::Mov(1, 14),
-                asm::Instruction::AddI(1, var.offset),
-                mov,
-                asm::Instruction::Pop(1),
-            ]
+                    vec![
+                        asm::Instruction::Push(1),
+                        asm::Instruction::Mov(1, 14),
+                        asm::Instruction::AddI(1, var.offset),
+                        internal::mov_instr::get_mov(target_op, source_op, &var.data_type),
+                        asm::Instruction::Pop(1),
+                    ]
+                }
+            }
         }
         ir::Expression::Reference(var_name) => {
             let var = vars.get(var_name).unwrap();

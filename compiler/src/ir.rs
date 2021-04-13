@@ -7,6 +7,7 @@ pub enum DataType {
     I16,
     U16,
     Ptr(Box<DataType>),
+    Array(Box<DataType>, u32),
 }
 
 /// A simple Constant Value

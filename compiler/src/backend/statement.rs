@@ -1,6 +1,6 @@
 use core::panic;
 
-use internal::get_size::get_size;
+use internal::mov_instr;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
 use super::{expression, function::VarOffset, internal, Functions, Offsets};
@@ -44,7 +44,7 @@ pub fn generate(
             let op_target = asm::Operand::AtRegister(1);
             let op_source = asm::Operand::Register(0);
 
-            let mov_instr = match destination {
+            let mov = match destination {
                 ir::Expression::Variable(name) => {
                     let var = vars.get(name).unwrap();
 
@@ -53,22 +53,12 @@ pub fn generate(
                         _ => panic!("Cannot dereference something that is not a PTR-Type"),
                     };
 
-                    // MOV.(B|W|L) R0 -> (R2)
-                    match get_size(data_type) {
-                        super::function::VariableSize::Long => {
-                            asm::Instruction::MovL(op_target, op_source)
-                        }
-                        super::function::VariableSize::Word => {
-                            asm::Instruction::MovW(op_target, op_source)
-                        }
-                        super::function::VariableSize::Byte => {
-                            asm::Instruction::MovB(op_target, op_source)
-                        }
-                    }
+                    // MOV R0 -> (R2)
+                    mov_instr::get_mov(op_target, op_source, &data_type)
                 }
                 _ => asm::Instruction::MovB(op_target, op_source),
             };
-            result.push(mov_instr);
+            result.push(mov);
 
             result
         }
@@ -85,11 +75,11 @@ pub fn generate(
             let var = vars.get(name).unwrap();
             result.push(asm::Instruction::AddI(1, var.offset));
 
-            // MOV.L R0 -> (R1)
-            result.push(asm::Instruction::MovL(
-                asm::Operand::AtRegister(1),
-                asm::Operand::Register(0),
-            ));
+            let op_target = asm::Operand::AtRegister(1);
+            let op_source = asm::Operand::Register(0);
+
+            // MOV R0 -> (R1)
+            result.push(mov_instr::get_mov(op_target, op_source, &var.data_type));
 
             result
         }

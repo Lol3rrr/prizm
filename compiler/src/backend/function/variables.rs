@@ -6,12 +6,18 @@ fn var_offset(statements: &[ir::Statement], vars: &mut VarOffset, final_offset: 
     for tmp in statements.iter() {
         match tmp {
             ir::Statement::Declaration(name, datatype) => {
-                let var_size = internal::get_size::get_size(&datatype);
+                let var_size = internal::get_size::var_size(&datatype);
 
                 let size: u8 = match var_size {
                     VariableSize::Long => 4,
                     VariableSize::Word => 2,
                     VariableSize::Byte => 1,
+                    VariableSize::Custom(s) => {
+                        if s > 127 {
+                            unimplemented!("Variable too big: {}", s);
+                        }
+                        s as u8
+                    }
                 };
 
                 if *final_offset % size != 0 {
@@ -43,12 +49,18 @@ fn param_offset(params: &[(String, ir::DataType)], var_stack_offset: u8, vars: &
     let mut current_offset = 4 * 3;
     for param in params.iter() {
         let (name, datatype) = param;
-        let var_size = internal::get_size::get_size(&datatype);
+        let var_size = internal::get_size::var_size(&datatype);
 
         let size: u8 = match var_size {
             VariableSize::Long => 4,
             VariableSize::Word => 2,
             VariableSize::Byte => 1,
+            VariableSize::Custom(s) => {
+                if s > 127 {
+                    unimplemented!("Variable too big: {}", s);
+                }
+                s as u8
+            }
         };
 
         let param_offset = var_stack_offset + current_offset;
