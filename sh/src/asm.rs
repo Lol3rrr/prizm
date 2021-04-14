@@ -1,6 +1,9 @@
 mod deserialize;
 mod serialize;
 
+// Referene:
+// http://shared-ptr.com/sh_insns.html
+
 /// Operands are used to specify the Way Moves should
 /// Operate and where their Targets and Sources are,
 /// as they can be (mostly) any kombination of these
@@ -36,6 +39,8 @@ pub enum Instruction {
     MovW(Operand, Operand),
     /// Moves a Long(32bit) from the Source to the Destination
     MovL(Operand, Operand),
+    /// Zero extends the Source and stores the Result in the Target
+    ExtuW(u8, u8),
     // TODO
     // Add Documentation
     STS(u8),

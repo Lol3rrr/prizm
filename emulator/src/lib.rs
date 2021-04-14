@@ -14,6 +14,9 @@ mod instructiontype;
 mod em;
 pub use em::Emulator;
 
+mod inputs;
+pub use inputs::{Key, Modifier};
+
 use sh::asm;
 
 pub const CODE_MAPPING_OFFSET: u32 = 0x00300000;
@@ -30,25 +33,4 @@ pub enum Exception {
 pub enum DisplayBits {
     HighBits,
     LowBits,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Modifier {
-    Shift,
-    Alpha,
-    None,
-}
-#[derive(Debug, PartialEq)]
-pub enum Key {
-    Menu,
-    Exit,
-    Exe,
-    Del,
-    Ac,
-    Number(u8),
-    Character(char),
-    ArrowUp,
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
 }

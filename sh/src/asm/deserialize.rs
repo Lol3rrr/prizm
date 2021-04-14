@@ -29,6 +29,7 @@ pub fn deserialize(raw: u16) -> Instruction {
         (0x6, n_reg, m_reg, 0x2) => {
             Instruction::MovL(Operand::Register(n_reg), Operand::AtRegister(m_reg))
         }
+        (0x6, n_reg, m_reg, 0xd) => Instruction::ExtuW(n_reg, m_reg),
         (0x2, n_reg, m_reg, 0x0) => {
             Instruction::MovB(Operand::AtRegister(n_reg), Operand::Register(m_reg))
         }

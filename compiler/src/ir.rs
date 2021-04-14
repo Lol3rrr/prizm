@@ -171,9 +171,32 @@ impl Statement {
                     tmp.pretty_print(padding_length + 2);
                 }
             }
+            Self::SingleExpression(exp) => {
+                exp.pretty_print(padding_length);
+            }
             _ => {
                 println!("{}{:?}", padding, self);
             }
+        };
+    }
+}
+
+impl Expression {
+    pub fn pretty_print(&self, padding_length: u8) {
+        let padding = gen_padding(padding_length);
+        let next_padding_length = padding_length + 2;
+        let next_padding = gen_padding(next_padding_length);
+
+        match self {
+            Self::Call(name, vars) => {
+                println!("{}Call:", padding);
+                println!("{}Function: {}", next_padding, name);
+                println!("{}Params:", next_padding);
+                for tmp in vars.iter() {
+                    tmp.pretty_print(next_padding_length + 2);
+                }
+            }
+            _ => println!("{}{:?}", padding, self),
         };
     }
 }

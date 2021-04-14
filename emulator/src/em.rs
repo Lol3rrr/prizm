@@ -2,6 +2,8 @@ use crate::{
     asm, instructiontype::InstructionType, Display, Exception, Input, Memory, CODE_MAPPING_OFFSET,
 };
 
+mod syscall;
+
 /// The actual Emulator itself
 pub struct Emulator<'k, 'd, K, D>
 where
@@ -137,6 +139,7 @@ where
     }
 
     pub fn print_registers(&self) {
+        println!("PC: x{:X} PR: x{:X}", self.pc, self.memory.pr);
         self.memory.print_registers();
     }
 
@@ -151,27 +154,6 @@ where
         self.fetch_instruction(self.pc + offset)
     }
 
-    fn syscall(&mut self) {
-        let syscall = self.memory.read_register(0);
-        match syscall {
-            0xeab => {
-                let (key, modifier) = self.input.get_key();
-                println!("Get-Key: {:?} {:?}", key, modifier);
-            }
-            0x0272 => {
-                println!("Bdisp_AllClr_VRAM System-Call");
-                self.display.clear_vram();
-            }
-            0x025f => {
-                println!("Bdisp_PutDD_VRAM System-Call");
-                self.display.display_vram();
-            }
-            _ => {
-                println!("Unknown Syscall: {:x}", syscall);
-            }
-        };
-    }
-
     fn handle_jump(&mut self, destination: u32, delayed: bool) {
         if delayed {
             self.pc += 2;
@@ -180,7 +162,8 @@ where
 
         let n_pc = match destination {
             _ if destination == 0x80020070 => {
-                self.syscall();
+                let id = self.memory.read_register(0);
+                syscall::syscall(id, &mut self.memory, self.input, self.display);
                 self.memory.pr
             }
             _ => destination,
@@ -342,6 +325,15 @@ where
                 let data = self.memory.read_long(addr);
 
                 self.memory.write_register(n_register, data);
+                self.pc += 2;
+            }
+            asm::Instruction::ExtuW(n_register, m_register) => {
+                self.print_instr(&instr);
+
+                let prev_value = self.memory.read_register(m_register);
+                let extended_value = 0x0000FFFF & prev_value;
+                self.memory.write_register(n_register, extended_value);
+
                 self.pc += 2;
             }
 
