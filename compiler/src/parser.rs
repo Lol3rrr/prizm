@@ -12,6 +12,8 @@ mod func_args;
 mod function;
 mod statements;
 
+/// Parses the Tokens into the Compilers-IR that represents the actual
+/// Program in a more Abstract way
 pub fn parse(tokens: &[(Token, TokenMetadata)]) -> Vec<ir::Function> {
     let mut functions = Vec::new();
 

@@ -1,9 +1,6 @@
 use crate::{asm, ir};
 
-use super::{
-    function::{self, VarOffset},
-    internal, syscall, Functions, Offsets,
-};
+use super::{function::VarOffset, internal, syscall, Functions, Offsets};
 
 // TODO
 pub fn generate(

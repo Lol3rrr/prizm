@@ -1,5 +1,6 @@
 use super::Token;
 
+/// Parses the given Character as a Token
 pub fn parse(seperator: char) -> Option<Token> {
     match seperator {
         '(' => Some(Token::OpenParan),

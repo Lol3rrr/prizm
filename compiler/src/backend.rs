@@ -13,7 +13,8 @@ mod syscall;
 pub type Offsets = HashMap<String, u32>;
 pub type Functions = HashMap<String, ir::Function>;
 
-// TODO
+/// Generates the Assembly that corresponds to the given Functions
+/// and general IR
 pub fn generate(mut funcs: Vec<ir::Function>) -> Vec<asm::Instruction> {
     let mut result = vec![asm::Instruction::JmpLabel("main".to_owned())];
 

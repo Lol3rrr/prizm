@@ -1,5 +1,7 @@
 use super::{seperator, word, Token, TokenMetadata};
 
+/// Splits the Content into seperate Tokens that can be
+/// used by the Rest of the Compiler for further processing
 pub fn tokenize(content: &str, file_name: String) -> Vec<(Token, TokenMetadata)> {
     let mut result = Vec::new();
     let mut line = 1;

@@ -6,6 +6,7 @@ use crate::{
     lexer::{Token, TokenMetadata, Value},
 };
 
+/// Parses a single Expression, so only Constants and Variables
 fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
@@ -51,6 +52,8 @@ where
     }
 }
 
+/// Parses the Token-Stream into a single Expression that may
+/// be made up of different Sub-Expressions
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

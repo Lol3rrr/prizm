@@ -38,6 +38,7 @@ where
     }
 }
 
+/// Parses a single Token-Stream into a concrete Datatype
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::DataType>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

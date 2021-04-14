@@ -1,5 +1,6 @@
 use super::{Keyword, Token, Value};
 
+/// Parses the given Word into a Token
 pub fn parse(word: &str) -> Option<Token> {
     match word {
         "unsigned" => Some(Token::Keyword(Keyword::Unsigned)),

@@ -30,6 +30,7 @@ where
     Some(inner)
 }
 
+/// Parses a Single Statement, like a single Line or a Loop
 fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Statement>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
@@ -286,6 +287,7 @@ where
     }
 }
 
+/// Parses the Token-Stream into a List of Statements
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

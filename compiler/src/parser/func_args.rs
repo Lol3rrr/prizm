@@ -6,6 +6,7 @@ use crate::{
     lexer::{Token, TokenMetadata},
 };
 
+/// Parses the Arguments that a Function receives
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<(String, ir::DataType)>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

@@ -2,12 +2,16 @@ use std::collections::HashMap;
 
 use crate::asm;
 
+/// A Jump-Entry that reflects a single Jump
 #[derive(Debug)]
 pub struct Jump {
+    /// The Start Address
     pub start: u32,
+    /// The Target Address
     pub target: u32,
 }
 
+/// A single Entry, that is either an Instruction or Jump
 #[derive(Debug)]
 pub enum Entry {
     Instruction(asm::Instruction),
@@ -15,6 +19,8 @@ pub enum Entry {
     Jsr(Jump),
 }
 
+/// Converts the given Instructions into a List of Entries that will be used for the
+/// Rest of the Assembling Stages
 pub fn to_entry_list(instr: &[asm::Instruction], targets: &HashMap<String, u32>) -> Vec<Entry> {
     let mut result = Vec::new();
 
@@ -46,6 +52,7 @@ pub fn to_entry_list(instr: &[asm::Instruction], targets: &HashMap<String, u32>)
     result
 }
 
+/// Moves all the affected entries by the given Offset
 pub fn move_entries(entries: &mut Vec<Entry>, start: usize, offset: u32) {
     for entrie in entries.iter_mut() {
         if let Entry::Jump(tmp) = entrie {
@@ -59,6 +66,7 @@ pub fn move_entries(entries: &mut Vec<Entry>, start: usize, offset: u32) {
     }
 }
 
+/// Calculates the Distant that a Jump spans over
 fn calc_delta(jmp: Jump) -> u16 {
     let start = jmp.start + 4;
     let target = jmp.target;

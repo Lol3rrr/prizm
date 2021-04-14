@@ -7,6 +7,7 @@ use crate::{
 
 use super::{func_args, statements};
 
+/// Parses the Token-Stream into a single Function defined in the Program
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Function>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
