@@ -1,5 +1,6 @@
 use crate::{asm, ir};
 
+/// Maps the different Comparisons to the actual Comparison instructions
 pub fn generate(
     comp: &ir::Comparison,
     left_reg: u8,

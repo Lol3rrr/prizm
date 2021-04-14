@@ -2,6 +2,7 @@ use crate::{backend::internal, ir};
 
 use super::{VarOffset, VariableMetaData, VariableSize};
 
+/// Calculates the Offsets for the Varialbes used in the Function itself
 fn var_offset(statements: &[ir::Statement], vars: &mut VarOffset, final_offset: &mut u8) {
     for tmp in statements.iter() {
         match tmp {
@@ -42,6 +43,7 @@ fn var_offset(statements: &[ir::Statement], vars: &mut VarOffset, final_offset: 
     }
 }
 
+/// Calculates the Offsets for the Parameters passed to the Function
 fn param_offset(params: &[(String, ir::DataType)], var_stack_offset: u8, vars: &mut VarOffset) {
     // The initial Offset is 4, because there will always be
     // the 32bit return PR-Value stored on the stack as well
@@ -80,6 +82,9 @@ fn param_offset(params: &[(String, ir::DataType)], var_stack_offset: u8, vars: &
     }
 }
 
+/// Calculates the Offsets for Variables and Arguments for the specific
+/// Function and then allows the rest of the backend to easily access
+/// Variables in the function
 pub fn get_offset(func: &ir::Function) -> (VarOffset, u8) {
     let mut vars = VarOffset::new();
     let mut final_offset = 0;

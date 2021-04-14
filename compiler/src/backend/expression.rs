@@ -2,7 +2,7 @@ use crate::{asm, ir};
 
 use super::{function::VarOffset, internal, syscall, Functions, Offsets};
 
-// TODO
+/// Generates the Code for a given Expression and stores the result in Register-0
 pub fn generate(
     exp: &ir::Expression,
     pre_asm: &mut Vec<asm::Instruction>,

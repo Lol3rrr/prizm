@@ -12,6 +12,7 @@ use crate::{
 mod comparison;
 mod condition;
 
+/// Generate the Instructions for the given Statement
 pub fn generate(
     statement: &ir::Statement,
     pre_asm: &mut Vec<asm::Instruction>,

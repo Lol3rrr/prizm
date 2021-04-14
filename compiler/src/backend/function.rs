@@ -25,6 +25,7 @@ pub struct VariableMetaData {
 /// can simply be applied using the add immediate instruction
 pub type VarOffset = HashMap<String, VariableMetaData>;
 
+/// Generates the Instructions for a given Function
 pub fn generate(
     func: &ir::Function,
     result: &mut Vec<asm::Instruction>,

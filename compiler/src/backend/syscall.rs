@@ -2,6 +2,8 @@ use crate::asm;
 
 use super::internal;
 
+/// Generates the Assembly needed to actually execute any given syscall,
+/// although this only generates the actual call but not the parameters
 pub fn generate(call_id: u16) -> Vec<asm::Instruction> {
     let mut result: Vec<asm::Instruction> = Vec::new();
     result.append(&mut internal::store::store_u16(0, call_id));

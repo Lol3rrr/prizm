@@ -7,6 +7,7 @@ use crate::{
 
 use super::comparison;
 
+/// Generates the Instructions needed for the given Condition
 pub fn generate(
     cond: &ir::Condition,
     end_label: String,
