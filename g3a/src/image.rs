@@ -22,12 +22,14 @@ impl std::fmt::Display for ParseError {
     }
 }
 
+/// The custom Image Format used in the G3A Format
 #[derive(Debug, Clone)]
 pub struct Image {
     pixels: Vec<Vec<Pixel>>,
 }
 
 impl Image {
+    /// Creates an Empty/Black Image
     pub fn empty() -> Self {
         let rows = vec![
             vec![
@@ -43,6 +45,7 @@ impl Image {
         Self { pixels: rows }
     }
 
+    /// Parses the raw Byte-Sequence as an Image
     pub fn parse(raw: &[u8]) -> Result<Self, ParseError> {
         let raw_len = raw.len();
         if raw_len != IMAGE_SIZE {
@@ -65,6 +68,8 @@ impl Image {
         Ok(Self { pixels: rows })
     }
 
+    /// Serializes the Image into a Byte-Sequence to be stored
+    /// in a G3A File
     pub fn serialize(&self) -> [u8; IMAGE_SIZE] {
         let mut result = [0; IMAGE_SIZE];
 
@@ -82,6 +87,8 @@ impl Image {
         result
     }
 
+    /// Reads in the File and then converts the Image into
+    /// this custom Format used for the G3A File format
     pub fn from_file(path: &str) -> Option<Self> {
         let raw_img = match ImageReader::open(path) {
             Ok(s) => match s.decode() {
@@ -117,6 +124,7 @@ impl Image {
         })
     }
 
+    /// Saves the Image into a File at the given Path
     pub fn save_to_file(&self, path: &str) {
         let width = 92;
         let height = 64;
@@ -130,5 +138,11 @@ impl Image {
         }
 
         imgbuf.save(path).unwrap();
+    }
+}
+
+impl Default for Image {
+    fn default() -> Self {
+        Self::empty()
     }
 }

@@ -14,15 +14,27 @@ const UNSELECTED_ICON: usize = 0x1000;
 const SELECTED_ICON: usize = 0x4000;
 const EXECUTABLE_SECTION: usize = 0x7000;
 
+/// A single G3A-File
 #[derive(Debug)]
 pub struct File {
+    /// The Internal-Name of the Application
     pub internal_name: String,
+    /// The Short-Name of the Application
     pub short_name: String,
+    /// The total Size of the File
     pub file_size: u32,
+    /// The Selected Image that is displayed when the
+    /// Add-In is being selected on the MainMenu
     pub selected_image: image::Image,
+    /// The Image that is displayed on the MainMenu
+    /// if it is not selected
     pub unselected_image: image::Image,
+    /// The Code portion of the File
     pub executable_code: Vec<u8>,
+    /// The localization Options for the Application
+    /// containing the Names in different Languages
     pub localized: localization::Localized,
+    /// The EActivity Settings regarding this Add-In
     pub eactivity: eactivity::EActivity,
 }
 
@@ -31,6 +43,7 @@ pub struct File {
 // https://www.omnimaga.org/casio-calculator-programming-news-and-support/casio-prizm-already-for-sale/msg157437/#msg157437
 // https://gitlab.com/taricorp/mkg3a
 impl File {
+    /// Tries to parse the given Byte-Sequence into a G3A-File
     pub fn parse(content: &[u8]) -> Result<File, ParseError> {
         let identifier = &content[0..14];
         if identifier != HEADER_IDENTIFIER {
@@ -103,6 +116,7 @@ impl File {
         })
     }
 
+    /// Serializes the File into a valid Byte-Sequence
     pub fn serialize(&self, filename: &str) -> Vec<u8> {
         let mut result = vec![0; 0x7000];
 

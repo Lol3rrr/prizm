@@ -16,6 +16,7 @@ pub enum EActivityError {
     TooSmall,
 }
 
+/// The EActivity options for the Add-In
 #[derive(Debug)]
 pub struct EActivity {
     english: String,
@@ -35,6 +36,7 @@ fn parse_language(part: Vec<u8>, lang: Language) -> Result<String, EActivityErro
 }
 
 impl EActivity {
+    /// Creates an empty EActivity
     pub fn empty() -> Self {
         Self {
             english: String::new(),
@@ -47,6 +49,8 @@ impl EActivity {
         }
     }
 
+    /// Parses the EActivity from a G3A File, accepts
+    /// the entire File as input
     pub fn parse(content: &[u8]) -> Result<Self, EActivityError> {
         if content.len() < 0x0590 {
             return Err(EActivityError::TooSmall);
@@ -79,6 +83,7 @@ impl EActivity {
         })
     }
 
+    /// Serializes the current EActivity into a valid Byte-Sequence
     pub fn serialize(&self) -> [u8; 0x420] {
         let mut result = [0; 0x420];
 

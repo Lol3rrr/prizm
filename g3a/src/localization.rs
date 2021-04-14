@@ -19,27 +19,38 @@ pub enum LocalizationError {
     MalformedInput,
 }
 
-#[derive(Debug)]
-pub struct Localized {
-    pub english: String,
-    pub spanish: String,
-    pub german: String,
-    pub french: String,
-    pub portuguese: String,
-    pub chinese: String,
-    pub eactivity: bool,
-    pub version: String,
-    pub date: String,
-}
-
-fn parse_string(input: Vec<u8>) -> Result<String, LocalizationError> {
-    match String::from_utf8(input) {
-        Ok(s) => Ok(s),
-        Err(_) => Err(LocalizationError::MalformedInput),
+impl From<std::string::FromUtf8Error> for LocalizationError {
+    fn from(_: std::string::FromUtf8Error) -> Self {
+        LocalizationError::MalformedInput
     }
 }
 
+/// The Localization Options for a given Add-In
+#[derive(Debug)]
+pub struct Localized {
+    /// The Add-In Name in English
+    pub english: String,
+    /// The Add-In Name in Spanish
+    pub spanish: String,
+    /// The Add-In Name in German
+    pub german: String,
+    /// The Add-In Name in French
+    pub french: String,
+    /// The Add-In Name in Portuguese
+    pub portuguese: String,
+    /// The Add-In Name in Chinese
+    pub chinese: String,
+    /// Whether or not EActivity is enabled
+    pub eactivity: bool,
+    /// The Version of the Add-In
+    pub version: String,
+    /// The Date of the Creation of the Add-In
+    pub date: String,
+}
+
 impl Localized {
+    /// Parses the Localization-Options from the raw entire
+    /// G3A-File
     pub fn parse(content: &[u8]) -> Result<Self, LocalizationError> {
         let raw_english = &content[ENGLISH_OFFSET..ENGLISH_OFFSET + TEXT_SIZE];
         let raw_spanish = &content[SPANISH_OFFSET..SPANISH_OFFSET + TEXT_SIZE];
@@ -48,12 +59,12 @@ impl Localized {
         let raw_portuguese = &content[PORTUGUESE_OFFSET..PORTUGUESE_OFFSET + TEXT_SIZE];
         let raw_chinese = &content[CHINESE_OFFSET..CHINESE_OFFSET + TEXT_SIZE];
 
-        let english = parse_string(raw_english.to_vec())?;
-        let spanish = parse_string(raw_spanish.to_vec())?;
-        let german = parse_string(raw_german.to_vec())?;
-        let french = parse_string(raw_french.to_vec())?;
-        let portuguese = parse_string(raw_portuguese.to_vec())?;
-        let chinese = parse_string(raw_chinese.to_vec())?;
+        let english = String::from_utf8(raw_english.to_vec())?;
+        let spanish = String::from_utf8(raw_spanish.to_vec())?;
+        let german = String::from_utf8(raw_german.to_vec())?;
+        let french = String::from_utf8(raw_french.to_vec())?;
+        let portuguese = String::from_utf8(raw_portuguese.to_vec())?;
+        let chinese = String::from_utf8(raw_chinese.to_vec())?;
 
         let raw_eactivity = content[EACTIVITY_OFFSET];
         let eactivity = raw_eactivity != 0;
@@ -61,8 +72,8 @@ impl Localized {
         let raw_version = &content[VERSION_OFFSET..VERSION_OFFSET + 0xc];
         let raw_date = &content[DATE_OFFSET..DATE_OFFSET + 0xe];
 
-        let version = parse_string(raw_version.to_vec())?;
-        let date = parse_string(raw_date.to_vec())?;
+        let version = String::from_utf8(raw_version.to_vec())?;
+        let date = String::from_utf8(raw_date.to_vec())?;
 
         Ok(Self {
             english,
