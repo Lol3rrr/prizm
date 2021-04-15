@@ -4,9 +4,9 @@ mod assembler;
 mod backend;
 mod const_eval;
 mod ir;
-mod lexer;
+pub mod lexer;
 mod optimizer;
-mod parser;
+pub mod parser;
 
 // The CPU in the casio calculators is 32Bit
 // Instr-DOCS: http://shared-ptr.com/sh_insns.html

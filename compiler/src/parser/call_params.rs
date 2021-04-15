@@ -7,6 +7,33 @@ use crate::{
 };
 
 /// Parses the Arguments to a function being called
+///
+/// # Arguments:
+/// Expects the Token-Stream to start after the Opening-Paran
+///
+/// # Behaviour:
+/// Consumes the Token-Stream until a Closing-Paran has been reached,
+/// which will also be consumed and then returns the Parsed out Parameters
+/// accepted by the Function, if any
+///
+/// # Example:
+/// ```
+/// # use compiler::lexer::{Token, TokenMetadata};
+/// # use compiler::parser::call_params::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_string(), line: 1, };
+/// let tokens = &[
+///     (Token::Identifier("test_name".to_owned()), empty_metadata.clone()),
+///     (Token::CloseParan, empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expects that the entire Token-Stream has been consumed,
+/// // including the Closing-Parans
+/// assert_eq!(None, iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Expression>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

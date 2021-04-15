@@ -54,6 +54,24 @@ where
 
 /// Parses the Token-Stream into a single Expression that may
 /// be made up of different Sub-Expressions
+///
+/// # Example:
+/// ```rust
+/// # use compiler::lexer::{Token, TokenMetadata};
+/// # use compiler::parser::expression::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
+/// let tokens = &[
+///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
+///     (Token::Semicolon, empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expect the ending Semicolon to still be left in the Token-Stream
+/// assert_eq!(Some(&(Token::Semicolon, empty_metadata)), iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

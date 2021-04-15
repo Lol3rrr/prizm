@@ -38,7 +38,25 @@ where
     }
 }
 
-/// Parses a single Token-Stream into a concrete Datatype
+/// Parses a Token-Stream into a concrete Datatype
+///
+/// # Example:
+/// ```rust
+/// # use compiler::lexer::{Token, TokenMetadata, Keyword};
+/// # use compiler::parser::datatype::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
+/// let tokens = &[
+///     (Token::Keyword(Keyword::Integer), empty_metadata.clone()),
+///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expect the Identifier to be left in the Token-Stream
+/// assert_eq!(Some(&(Token::Identifier("test".to_owned()), empty_metadata)), iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::DataType>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

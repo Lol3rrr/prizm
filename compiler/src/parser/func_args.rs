@@ -7,6 +7,25 @@ use crate::{
 };
 
 /// Parses the Arguments that a Function receives
+///
+/// # Example:
+/// ```rust
+/// # use compiler::lexer::{Token, TokenMetadata, Keyword};
+/// # use compiler::parser::func_args::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
+/// let tokens = &[
+///     (Token::Keyword(Keyword::Integer), empty_metadata.clone()),
+///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
+///     (Token::CloseParan, empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expects that the Closing-Paran has also been consumed
+/// assert_eq!(None, iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<(String, ir::DataType)>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

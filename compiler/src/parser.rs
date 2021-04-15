@@ -3,14 +3,14 @@ use super::{
     lexer::{Token, TokenMetadata},
 };
 
-mod call_params;
-mod comparison;
-mod condition;
-mod datatype;
-mod expression;
-mod func_args;
-mod function;
-mod statements;
+pub mod call_params;
+pub mod comparison;
+pub mod condition;
+pub mod datatype;
+pub mod expression;
+pub mod func_args;
+pub mod function;
+pub mod statements;
 
 /// Parses the Tokens into the Compilers-IR that represents the actual
 /// Program in a more Abstract way

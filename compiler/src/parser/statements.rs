@@ -288,6 +288,24 @@ where
 }
 
 /// Parses the Token-Stream into a List of Statements
+///
+/// # Example:
+/// ```rust
+/// # use compiler::lexer::{Token, TokenMetadata};
+/// # use compiler::parser::statements::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
+/// let tokens = &[
+///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
+///     (Token::Semicolon, empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expect
+/// assert_eq!(None, iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

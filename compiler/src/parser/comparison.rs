@@ -8,6 +8,24 @@ use crate::{
 /// Parses the Comparison Operator itself only consuming 2 entries
 /// from the Iterator and most and only consuming them if they
 /// are actually part of the Comparison
+///
+/// # Example:
+/// ```rust
+/// # use compiler::lexer::{Token, TokenMetadata};
+/// # use compiler::parser::comparison::parse;
+/// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
+/// let tokens = &[
+///     (Token::Equals, empty_metadata.clone()),
+///     (Token::Equals, empty_metadata.clone()),
+/// ];
+///
+/// // Parse the Tokens
+/// let mut iter = tokens.iter().peekable();
+/// parse(&mut iter);
+///
+/// // Expects that the entire Token-Stream has been consumed
+/// assert_eq!(None, iter.next());
+/// ```
 pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Comparison>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,

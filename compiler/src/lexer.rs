@@ -45,7 +45,7 @@ pub enum Token {
 
 /// General Metadata associated with a single Token
 /// that can be used to give more helping Compiler-Errors
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TokenMetadata {
     /// The File in which the Token is located
     pub file_name: String,
