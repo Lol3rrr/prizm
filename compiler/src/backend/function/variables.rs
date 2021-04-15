@@ -1,86 +1,9 @@
-use crate::{backend::internal, ir};
+use crate::ir;
 
-use super::{VarOffset, VariableMetaData, VariableSize};
+use super::VarOffset;
 
-/// Calculates the Offsets for the Varialbes used in the Function itself
-fn var_offset(statements: &[ir::Statement], vars: &mut VarOffset, final_offset: &mut u8) {
-    for tmp in statements.iter() {
-        match tmp {
-            ir::Statement::Declaration(name, datatype) => {
-                let var_size = internal::get_size::var_size(&datatype);
-
-                let size: u8 = match var_size {
-                    VariableSize::Long => 4,
-                    VariableSize::Word => 2,
-                    VariableSize::Byte => 1,
-                    VariableSize::Custom(s) => {
-                        if s > 127 {
-                            unimplemented!("Variable too big: {}", s);
-                        }
-                        s as u8
-                    }
-                };
-
-                if *final_offset % size != 0 {
-                    println!("Unaligned: At x{:X} with size x{:X}", final_offset, size);
-                }
-
-                vars.insert(
-                    name.to_owned(),
-                    VariableMetaData {
-                        offset: *final_offset,
-                        data_size: var_size,
-                        data_type: datatype.clone(),
-                    },
-                );
-                *final_offset += size;
-            }
-            ir::Statement::WhileLoop(_, tmp_statements) => {
-                var_offset(tmp_statements, vars, final_offset);
-            }
-            _ => {}
-        };
-    }
-}
-
-/// Calculates the Offsets for the Parameters passed to the Function
-fn param_offset(params: &[(String, ir::DataType)], var_stack_offset: u8, vars: &mut VarOffset) {
-    // The initial Offset is 4, because there will always be
-    // the 32bit return PR-Value stored on the stack as well
-    // as both the previous SP and FP
-    let mut current_offset = 4 * 3;
-    for param in params.iter() {
-        let (name, datatype) = param;
-        let var_size = internal::get_size::var_size(&datatype);
-
-        let size: u8 = match var_size {
-            VariableSize::Long => 4,
-            VariableSize::Word => 2,
-            VariableSize::Byte => 1,
-            VariableSize::Custom(s) => {
-                if s > 127 {
-                    unimplemented!("Variable too big: {}", s);
-                }
-                s as u8
-            }
-        };
-
-        let param_offset = var_stack_offset + current_offset;
-        if param_offset % size != 0 {
-            println!("Unaligned: At x{:X} with size x{:X}", param_offset, size);
-        }
-
-        vars.insert(
-            name.to_owned(),
-            VariableMetaData {
-                offset: param_offset,
-                data_size: var_size,
-                data_type: datatype.clone(),
-            },
-        );
-        current_offset += size;
-    }
-}
+mod params;
+mod vars;
 
 /// Calculates the Offsets for Variables and Arguments for the specific
 /// Function and then allows the rest of the backend to easily access
@@ -89,8 +12,8 @@ pub fn get_offset(func: &ir::Function) -> (VarOffset, u8) {
     let mut vars = VarOffset::new();
     let mut final_offset = 0;
 
-    var_offset(&func.3, &mut vars, &mut final_offset);
-    param_offset(&func.2, final_offset, &mut vars);
+    vars::offsets(&func.3, &mut vars, &mut final_offset);
+    params::offsets(&func.2, final_offset, &mut vars);
 
     (vars, final_offset)
 }
@@ -98,6 +21,7 @@ pub fn get_offset(func: &ir::Function) -> (VarOffset, u8) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::function::{VariableMetaData, VariableSize};
 
     #[test]
     fn no_vars() {
