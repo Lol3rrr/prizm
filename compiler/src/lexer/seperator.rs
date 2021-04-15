@@ -1,24 +1,36 @@
 use super::Token;
 
+const SEPERATORS: [(char, Token); 16] = [
+    ('(', Token::OpenParan),
+    (')', Token::CloseParan),
+    ('[', Token::OpenSquareBrace),
+    (']', Token::CloseSquareBrace),
+    ('{', Token::OpenCurlyBrace),
+    ('}', Token::CloseCurlyBrace),
+    (';', Token::Semicolon),
+    ('/', Token::Slash),
+    ('*', Token::Asterisk),
+    ('&', Token::And),
+    (',', Token::Comma),
+    ('=', Token::Equals),
+    ('+', Token::Plus),
+    ('-', Token::Minus),
+    ('<', Token::LessThan),
+    ('>', Token::GreaterThan),
+];
+
 /// Parses the given Character as a Token
 pub fn parse(seperator: char) -> Option<Token> {
-    match seperator {
-        '(' => Some(Token::OpenParan),
-        ')' => Some(Token::CloseParan),
-        '[' => Some(Token::OpenSquareBrace),
-        ']' => Some(Token::CloseSquareBrace),
-        '{' => Some(Token::OpenCurlyBrace),
-        '}' => Some(Token::CloseCurlyBrace),
-        ';' => Some(Token::Semicolon),
-        '/' => Some(Token::Slash),
-        '*' => Some(Token::Asterisk),
-        '&' => Some(Token::And),
-        ',' => Some(Token::Comma),
-        '=' => Some(Token::Equals),
-        '+' => Some(Token::Plus),
-        '-' => Some(Token::Minus),
-        '<' => Some(Token::LessThan),
-        '>' => Some(Token::GreaterThan),
-        _ => None,
-    }
+    let (_, tok) = SEPERATORS
+        .iter()
+        .find(|(elem_char, _)| *elem_char == seperator)?;
+    Some(tok.clone())
+}
+
+/// Checks if the given Character is a valid seperating Token
+pub fn is_token(tmp: char) -> bool {
+    SEPERATORS
+        .iter()
+        .find(|(elem_char, _)| *elem_char == tmp)
+        .is_some()
 }

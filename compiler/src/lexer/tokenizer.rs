@@ -28,8 +28,7 @@ pub fn tokenize(content: &str, file_name: String) -> Vec<(Token, TokenMetadata)>
                     line += 1;
                 }
             }
-            ';' | '(' | ')' | '{' | '}' | '/' | '*' | '&' | ',' | '=' | '+' | '-' | '<' | '>'
-            | '[' | ']' => {
+            _ if seperator::is_token(tmp_char) => {
                 let raw_word = &content[last_char..current];
                 if let Some(parsed_word) = word::parse(raw_word) {
                     result.push((

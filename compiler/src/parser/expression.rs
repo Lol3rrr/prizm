@@ -1,56 +1,11 @@
 use std::iter::Peekable;
 
-use super::call_params;
 use crate::{
     ir,
-    lexer::{Token, TokenMetadata, Value},
+    lexer::{Token, TokenMetadata},
 };
 
-/// Parses a single Expression, so only Constants and Variables
-fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
-where
-    I: Iterator<Item = &'a (Token, TokenMetadata)>,
-{
-    match iter.peek() {
-        Some((Token::Constant(const_val), _)) => {
-            iter.next().unwrap();
-            match const_val {
-                Value::Integer(value) => Some(ir::Expression::Constant(ir::Value::I32(*value))),
-                Value::UInteger(value) => Some(ir::Expression::Constant(ir::Value::U32(*value))),
-            }
-        }
-        Some((Token::Identifier(name), _)) => {
-            iter.next().unwrap();
-            match iter.peek() {
-                Some((Token::OpenParan, _)) => {
-                    iter.next();
-
-                    let params = call_params::parse(iter)?;
-                    Some(ir::Expression::Call(name.to_owned(), params))
-                }
-                Some((Token::OpenSquareBrace, _)) => {
-                    iter.next();
-
-                    let index = parse(iter)?;
-
-                    match iter.next() {
-                        Some((Token::CloseSquareBrace, _)) => {}
-                        _ => return None,
-                    };
-
-                    Some(ir::Expression::Dereference(Box::new(
-                        ir::Expression::Indexed(
-                            Box::new(ir::Expression::Variable(name.to_owned())),
-                            Box::new(index),
-                        ),
-                    )))
-                }
-                _ => Some(ir::Expression::Variable(name.to_owned())),
-            }
-        }
-        _ => None,
-    }
-}
+mod single;
 
 /// Parses the Token-Stream into a single Expression that may
 /// be made up of different Sub-Expressions
@@ -89,7 +44,7 @@ where
             inner
         }
         Some((Token::Constant(_), _)) | Some((Token::Identifier(_), _)) => {
-            let left_side = parse_single(iter)?;
+            let left_side = single::parse_single(iter)?;
 
             match iter.peek() {
                 Some((Token::Plus, _))
@@ -157,6 +112,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lexer::Value;
 
     #[test]
     fn constant() {

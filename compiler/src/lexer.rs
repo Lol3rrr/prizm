@@ -1,8 +1,8 @@
-mod seperator;
-mod tokenizer;
-mod word;
+pub mod seperator;
+pub mod tokenizer;
+pub mod word;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Keyword {
     Integer,
     Short,
@@ -14,13 +14,13 @@ pub enum Keyword {
     If,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Integer(i32),
     UInteger(u32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
     Keyword(Keyword),

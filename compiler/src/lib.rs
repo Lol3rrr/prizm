@@ -1,11 +1,11 @@
 use sh::asm;
 
-mod assembler;
-mod backend;
-mod const_eval;
-mod ir;
+pub mod assembler;
+pub mod backend;
+pub mod const_eval;
+pub mod ir;
 pub mod lexer;
-mod optimizer;
+pub mod optimizer;
 pub mod parser;
 
 // The CPU in the casio calculators is 32Bit
