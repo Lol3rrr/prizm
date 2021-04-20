@@ -1,10 +1,11 @@
 use crate::{Display, Input, Memory};
 
+mod disp;
+mod fs;
+
 const GETKEY: u32 = 0xeab;
 const GETKEYWAIT_OS: u32 = 0x12bf;
 const PRGM_GETKEY_OS: u32 = 0xd39;
-const BDISP_ALLCLR_VRAM: u32 = 0x272;
-const BDISP_PUTDD_VRAM: u32 = 0x25f;
 
 /// Executes a single System-Call
 pub fn syscall<I, D>(id: u32, memory: &mut Memory, input: &mut I, display: &mut D)
@@ -30,13 +31,11 @@ where
         PRGM_GETKEY_OS => {
             println!("PRGM_GetKey_OS");
         }
-        BDISP_ALLCLR_VRAM => {
-            println!("Bdisp_AllClr_VRAM System-Call");
-            display.clear_vram();
+        _ if disp::is_syscall(id) => {
+            disp::handle_syscall(id, param_1, param_2, param_3, param_4, display);
         }
-        BDISP_PUTDD_VRAM => {
-            println!("Bdisp_PutDD_VRAM System-Call");
-            display.display_vram();
+        _ if fs::is_syscall(id) => {
+            fs::handle_syscall(id, param_1, param_2, param_3, param_4);
         }
         _ => {
             println!("Unknown Syscall: x{:04X}", id);

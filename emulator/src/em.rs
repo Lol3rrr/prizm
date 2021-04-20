@@ -139,7 +139,10 @@ where
     }
 
     pub fn print_registers(&self) {
-        println!("PC: x{:X} PR: x{:X}", self.pc, self.memory.pr);
+        println!(
+            "PC: x{:X} PR: x{:X} T: {}",
+            self.pc, self.memory.pr, self.memory.t
+        );
         self.memory.print_registers();
     }
 
@@ -289,6 +292,17 @@ where
                 let value = self.memory.read_long(address);
                 self.memory.write_register(n_register, value);
                 self.memory.write_register(m_register, address + 4);
+                self.pc += 2;
+            }
+            asm::Instruction::PushOtherB(m_register, n_register) => {
+                self.print_instr(&instr);
+
+                let mut n = self.memory.read_register(n_register);
+                n -= 1;
+                self.memory.write_register(n_register, n);
+                let value = self.memory.read_register(m_register);
+                self.memory.write_byte(n, value as u8, self.display);
+
                 self.pc += 2;
             }
             asm::Instruction::PushOther(m_register, n_register) => {
@@ -537,7 +551,7 @@ where
             }
 
             // Control Registers
-            asm::Instruction::STS(register) => {
+            asm::Instruction::StsPr(register) => {
                 self.print_instr(&instr);
 
                 self.memory.write_register(register, self.memory.pr);
@@ -568,6 +582,30 @@ where
                 self.print_instr(&instr);
 
                 self.memory.write_register(target, self.memory.macl);
+                self.pc += 2;
+            }
+            asm::Instruction::StsLMacl(n_register) => {
+                self.print_instr(&instr);
+
+                self.memory
+                    .write_register(n_register, self.memory.read_register(n_register) - 4);
+                self.memory.write_long(
+                    self.memory.read_register(n_register),
+                    self.memory.macl,
+                    self.display,
+                );
+                self.pc += 2;
+            }
+            asm::Instruction::StsLMach(n_register) => {
+                self.print_instr(&instr);
+
+                self.memory
+                    .write_register(n_register, self.memory.read_register(n_register) - 4);
+                self.memory.write_long(
+                    self.memory.read_register(n_register),
+                    self.memory.mach,
+                    self.display,
+                );
                 self.pc += 2;
             }
 

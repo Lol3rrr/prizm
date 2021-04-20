@@ -41,13 +41,16 @@ pub enum Instruction {
     MovL(Operand, Operand),
     /// Zero extends the Source and stores the Result in the Target
     ExtuW(u8, u8),
-    // TODO
-    // Add Documentation
-    STS(u8),
+    /// Moves the PR-Control-Register into the
+    /// given Register
+    StsPr(u8),
     /// Pushes the value in the given Register on the Stack
     Push(u8),
     /// In the Format of (Source, StackRegister)
     PushOther(u8, u8),
+    /// Pushes the Source-Byte on the Stack.
+    /// Format (Source, StackRegister)
+    PushOtherB(u8, u8),
     /// Pushes the PR-Control-Register onto the Stack
     PushPR, // STS.L
     /// The Register that contains the StackPtr
@@ -154,6 +157,9 @@ pub enum Instruction {
     /// Pushes the MACL Register onto the Stack,
     /// The given Register is used as the StackPtr (usually R15)
     StsLMacl(u8),
+    /// Pushes the MACH Register onto the Stack,
+    /// The given Register is used as the StackPtr (usually R15)
+    StsLMach(u8),
     /// Used to store some literal value or here not documented instruction
     /// This will simply be returned as is, so the user is responsible for
     /// the correctness of this instruction

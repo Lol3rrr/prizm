@@ -7,6 +7,7 @@ pub struct Memory {
     pub pr: u32,
     pub t: bool,
     pub macl: u32,
+    pub mach: u32,
     heap: Vec<u8>,
 }
 
@@ -17,6 +18,7 @@ impl Memory {
             pr: 0,
             t: false,
             macl: 0,
+            mach: 0,
             heap: Vec::new(),
         }
     }

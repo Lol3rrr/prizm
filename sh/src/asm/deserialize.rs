@@ -41,9 +41,12 @@ pub fn deserialize(raw: u16) -> Instruction {
         }
         (0x6, n_reg, m_reg, 0x6) => Instruction::PopOther(n_reg, m_reg),
         (0x4, n_reg, 0x2, 0x6) => Instruction::PopPROther(n_reg),
+        (0x2, n_reg, m_reg, 0x4) => Instruction::PushOtherB(m_reg, n_reg),
         (0x2, n_reg, m_reg, 0x6) => Instruction::PushOther(m_reg, n_reg),
         (0x4, n_reg, 0x2, 0x2) => Instruction::PushPROther(n_reg),
         (0x0, n_reg, 0x1, 0xa) => Instruction::StsMacl(n_reg),
+        (0x4, n_reg, 0x1, 0x2) => Instruction::StsLMacl(n_reg),
+        (0x4, n_reg, 0x0, 0x2) => Instruction::StsLMach(n_reg),
 
         (0x8, 0xb, d_1, d_2) => Instruction::BF((d_1 << 4) | d_2),
         (0x8, 0x9, d_1, d_2) => Instruction::BT((d_1 << 4) | d_2),

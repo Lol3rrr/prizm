@@ -8,8 +8,14 @@ impl MockInput {
     pub fn new(inputs: Vec<(Key, Modifier)>) -> Self {
         Self { keys: inputs }
     }
+    pub fn empty() -> Self {
+        Self { keys: Vec::new() }
+    }
     pub fn left_over(&self) -> &[(Key, Modifier)] {
         &self.keys
+    }
+    pub fn add_input(&mut self, key: (Key, Modifier)) {
+        self.keys.push(key);
     }
 }
 
