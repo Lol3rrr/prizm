@@ -143,4 +143,12 @@ impl Memory {
     {
         self.write_u8(addr, byte, disp);
     }
+    pub fn read_byte(&mut self, addr: u32) -> u8 {
+        let addr_u = addr as usize;
+        self.check_access(addr_u, 1);
+
+        let byte_1 = self.heap.get(addr_u).unwrap();
+
+        *byte_1
+    }
 }

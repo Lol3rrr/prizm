@@ -18,6 +18,13 @@ pub enum Operand {
     // TODO
     // Good Docs to describe this Feature
     Displacement8(u8),
+    /// Evaluates to the Address (disp * (1|2|4) + Rn)
+    /// Disp is 4-bit zero extended
+    /// Format (disp, Rn)
+    Displacement4Reg(u8, u8),
+    /// Loads the Value from the Address at (R0 + Rn(the
+    /// given Register))
+    OffsetR0(u8),
 }
 
 /// These Instructions are in the Intel Format
@@ -28,11 +35,16 @@ pub enum Instruction {
     Nop,
     /// Moves the Value of Register 2 into Register 1
     Mov(u8, u8),
+    /// Moves the Value in the T Register into the given Register
+    MovT(u8),
     /// (Target-Register, Value)
     /// Stores the Value in the Target-Register. The Value
     /// will be sign-extended and can therefore only be between
     /// -128 and +127
     MovI(u8, u8),
+    /// Stores the effective Address into R0
+    /// Address = (disp * 4) + (PC & 0xFFFFFFFC) + 4
+    MovA(u8),
     /// Moves a Byte from the Source to the Destination
     MovB(Operand, Operand),
     /// Moves a Word(16bit) from the Source to the Destination
@@ -65,8 +77,15 @@ pub enum Instruction {
     PopPR, // LDS.L
     /// The Register that contains the StackPtr
     PopPROther(u8),
+    /// Performs the Logical AND operation on the two registers
+    /// and checks if the result is 0 and sets the T bit to whether
+    /// or not it is equal to 0
+    Tst(u8, u8),
     /// XORs the given two Registers
     Xor(u8, u8),
+    /// ORs the two Registers and stores the result in the
+    /// Target Register
+    Or(u8, u8),
     /// Adds the two Registers together
     Add(u8, u8),
     /// Adds the Value directly to the given Register.
@@ -74,10 +93,24 @@ pub enum Instruction {
     /// so it can only represent values in the Range from
     /// -128 to +127
     AddI(u8, u8),
+    /// Subtracts the "Source"-/Other-Register from the
+    /// Target-Register and stores the Result in the Target-
+    /// Register
+    Sub(u8, u8),
+    /// Subtracts the Register Source- and T-Register from the
+    /// Target Register and stores the Result in the Target
+    /// Register and stores the borrow in the T-Register
+    Subc(u8, u8),
     /// Multiplies the two Registers together and stores
     /// the resulting value in the MACL Register
     /// Rn + Rm -> MACL
     MulL(u8, u8),
+    /// Performs 32-Bit multiplication of the Two-Registers
+    /// and stores the 64-Bit result into MACH:MACL
+    DmulSL(u8, u8),
+    /// Compares R0 to the given immediate Value after
+    /// sign extension of it
+    CmpEqI(u8),
     /// First == Second
     CmpEq(u8, u8),
     /// First >= Second (unsigned)
@@ -88,6 +121,11 @@ pub enum Instruction {
     CmpHi(u8, u8),
     /// First > Second (signed)
     CmpGt(u8, u8),
+    /// Value >= 0 (signed)
+    CmpPz(u8),
+    /// Decrements the Value in the given Register and then
+    /// compares the result to 0
+    Dt(u8),
     /// This is not an actual Instruction, but is
     /// used to tell the Assembler where something
     /// starts
@@ -97,9 +135,15 @@ pub enum Instruction {
     /// Branches if T = 1, the previous comparison
     /// evaluted to true
     BT(u8),
+    /// Branches if T = 1, the previous comparison
+    /// evaluted to true
+    BTs(u8),
     /// Branches if T = 0, the previous comparison
     /// evaluted to false
     BF(u8),
+    /// Branches if T = 1, the previous comparison
+    /// evaluted to false
+    BFs(u8),
     /// Unconditional Branch
     BRA(u16),
     /// Stores PC + 4 into PR and then performs an
@@ -128,6 +172,10 @@ pub enum Instruction {
     /// Returns from a Subroutine
     /// PR -> PC
     Rts,
+    /// Arithmetically shifts the Content of the Register
+    /// to the Right and stores the bit shifted out in
+    /// the T bit
+    Shar(u8),
     /// Shifts the Value in the Register by 1
     /// to the left
     Shll(u8),
@@ -140,6 +188,10 @@ pub enum Instruction {
     /// Shifts the Value in the Register by 16
     /// to the left
     Shll16(u8),
+    /// Shifts the Value in the Shift-Register by the
+    /// amount of bits specified in the Shift-Count-Register
+    /// Format (shift_register, shift_count_register)
+    Shld(u8, u8),
     /// Shifts the Value in the Register by 1
     /// to the right
     Shlr(u8),
@@ -157,9 +209,19 @@ pub enum Instruction {
     /// Pushes the MACL Register onto the Stack,
     /// The given Register is used as the StackPtr (usually R15)
     StsLMacl(u8),
+    /// Pops the Value from the Stack and stores the Value in
+    /// the MACL Register
+    /// The given Register is used as the StackPtr (usually R15)
+    LdsLMacl(u8),
+    /// Loads the MACH Register into the given Register
+    StsMach(u8),
     /// Pushes the MACH Register onto the Stack,
     /// The given Register is used as the StackPtr (usually R15)
     StsLMach(u8),
+    /// Pops the Value from the Stack and stores the Value in
+    /// the MACH Register
+    /// The given Register is used as the StackPtr (usually R15)
+    LdsLMach(u8),
     /// Used to store some literal value or here not documented instruction
     /// This will simply be returned as is, so the user is responsible for
     /// the correctness of this instruction

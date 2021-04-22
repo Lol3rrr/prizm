@@ -4,23 +4,9 @@ const BFILE_DELETEENTRY: u32 = 0x1db4;
 
 pub fn is_syscall(id: u32) -> bool {
     match id {
-        BFILE_CLOSEFILE_OS | BFILE_CREATEENTRY_OS | BFILE_DELETEENTRY => true,
-        0x1dba => true,
-        0x1db7 => true,
-        0x1db6 => true,
-        0x1db9 => true,
-        0x1db8 => true,
-        0x1da6 => true,
-        0x1da5 => true,
-        0x1ddb => true,
-        0x1dda => true,
-        0x1da3 => true,
-        0x1dac => true,
-        0x1db3 => true,
-        0x1da9 => true,
-        0x1ddc => true,
-        0x1dab => true,
-        0x1daf => true,
+        BFILE_CLOSEFILE_OS | BFILE_CREATEENTRY_OS | BFILE_DELETEENTRY | 0x1dba | 0x1db7
+        | 0x1db6 | 0x1db9 | 0x1db8 | 0x1da6 | 0x1da5 | 0x1ddb | 0x1dda | 0x1da3 | 0x1dac
+        | 0x1db3 | 0x1da9 | 0x1ddc | 0x1dab | 0x1daf => true,
         _ => false,
     }
 }
