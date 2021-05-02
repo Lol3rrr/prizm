@@ -89,7 +89,8 @@ mod tests {
     fn u32() {
         let result = store_u32(0, 0x12345678);
 
-        let target_pc = (result.len() * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
+        let instr_count = result.len();
+        let target_pc = (instr_count * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
 
         let mut input = emulator::MockInput::new(vec![]);
         let mut display = emulator::MockDisplay::new();

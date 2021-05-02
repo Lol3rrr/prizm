@@ -1,6 +1,8 @@
 use std::io::{stdin, stdout, Write};
 
-use crate::{Input, Key, Modifier};
+use sh::asm::Instruction;
+
+use crate::{traits::Debugger, Input, Key, Modifier};
 
 pub struct CLIInput {}
 
@@ -36,5 +38,19 @@ impl Input for CLIInput {
             println!("Unknown: {:?}", key);
             (Key::Exe, Modifier::None)
         }
+    }
+}
+
+pub struct CLIDebugger {}
+
+impl CLIDebugger {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Debugger for CLIDebugger {
+    fn print_instr(&self, addr: u32, instr: &Instruction) {
+        println!("[x{:04X}] {:?}", addr, instr);
     }
 }

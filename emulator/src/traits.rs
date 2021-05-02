@@ -1,3 +1,5 @@
+use sh::asm::Instruction;
+
 use crate::{DisplayBits, Key, Modifier};
 
 /// A generic Trait that allows for different
@@ -18,4 +20,11 @@ pub trait Display {
     fn write_vram_u8(&mut self, x: u32, y: u32, part: DisplayBits, color: u8);
     /// Actually draws the current VRAM to screen
     fn display_vram(&mut self);
+}
+
+/// A simple Debugger trait that abstracts the debug information
+/// to allow for more general handling of debug related stuff
+pub trait Debugger {
+    /// Prints the given Instruction as debug information
+    fn print_instr(&self, address: u32, instr: &Instruction);
 }

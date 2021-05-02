@@ -3,7 +3,10 @@ use std::{
     io::{stdin, stdout, Write},
 };
 
-use emulator::{target, Emulator};
+use emulator::{
+    target::{self, CLIDebugger, EmptyDebugger},
+    Emulator,
+};
 use g3a;
 
 use structopt::StructOpt;
@@ -90,10 +93,13 @@ fn main() {
             }
             Some("verbose") => {
                 match em_cmd.next() {
-                    Some("true") => em.set_verbose(true),
-                    Some("false") => em.set_verbose(false),
+                    Some("true") => em.set_debug(Box::new(CLIDebugger::new())),
+                    Some("false") => em.set_debug(Box::new(EmptyDebugger::new())),
                     _ => println!("Unknown input"),
                 };
+            }
+            Some("help") => {
+                println!("Help:");
             }
             _ => {
                 println!("Unknown");

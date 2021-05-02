@@ -25,7 +25,7 @@ pub struct EActivity {
     french: String,
     portuguese: String,
     chinese: String,
-    icon: Vec<u8>,
+    icon: [u8; 0x0300],
 }
 
 fn parse_language(part: Vec<u8>, lang: Language) -> Result<String, EActivityError> {
@@ -45,7 +45,7 @@ impl EActivity {
             french: String::new(),
             portuguese: String::new(),
             chinese: String::new(),
-            icon: vec![0; 0x0300],
+            icon: [0; 0x0300],
         }
     }
 
@@ -71,6 +71,8 @@ impl EActivity {
         let chinese = parse_language(raw_chinese.to_vec(), Language::Chinese)?;
 
         let raw_icon = &content[0x0290..0x0590];
+        let mut icon = [0; 0x0300];
+        icon.copy_from_slice(raw_icon);
 
         Ok(Self {
             english,
@@ -79,7 +81,7 @@ impl EActivity {
             french,
             portuguese,
             chinese,
-            icon: raw_icon.to_vec(),
+            icon,
         })
     }
 

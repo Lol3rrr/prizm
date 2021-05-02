@@ -1,3 +1,5 @@
+pub mod general;
+pub mod system;
 pub mod target;
 
 mod traits;
@@ -10,6 +12,9 @@ mod mock;
 pub use mock::{display::MockDisplay, input::MockInput};
 
 mod instructiontype;
+
+mod cpu;
+pub use cpu::CPU;
 
 mod em;
 pub use em::Emulator;
