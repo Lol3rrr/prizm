@@ -141,6 +141,7 @@ where
         }
     }
 
+    /// Prints the content of the Registers
     pub fn print_registers(&self) {
         println!(
             "PC: x{:X} PR: x{:X} T: {}",
@@ -151,6 +152,7 @@ where
         self.memory.print_registers();
     }
 
+    /// Prints out all the Data on the current Stack
     pub fn print_stack(&self) {
         let start = self.memory.read_register(15) + 1;
         let end = self.memory.read_register(14);
@@ -167,6 +169,7 @@ where
         asm::Instruction::parse(word_bytes)
     }
 
+    /// Runs until the given PC has been reached or an exception was raised
     pub fn run_until(&mut self, target_pc: u32) -> Result<(), Exception> {
         loop {
             self.emulate_single()?;
@@ -175,6 +178,7 @@ where
             }
         }
     }
+    /// Runs until the Program returned or an exception was raised
     pub fn run_completion(&mut self) -> Result<(), Exception> {
         loop {
             self.emulate_single()?;
@@ -185,6 +189,7 @@ where
         }
     }
 
+    /// Emulates the execution of a single Instruction on the CPU
     pub fn emulate_single(&mut self) -> Result<(), Exception> {
         self.cpu.tick(
             &mut self.memory,

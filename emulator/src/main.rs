@@ -86,6 +86,7 @@ fn main() {
                     Some("code") => em.print_code(None, None),
                     Some("stack") => em.print_stack(),
                     Some("memory") => {
+                        // TODO
                         println!("Printing Memory");
                     }
                     _ => println!("Unknown"),
@@ -99,6 +100,7 @@ fn main() {
                 };
             }
             Some("help") => {
+                // TODO
                 println!("Help:");
             }
             _ => {

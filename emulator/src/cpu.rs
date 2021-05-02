@@ -7,6 +7,7 @@ use crate::{
 
 /// Emulates the CPU of the Calculator
 pub struct CPU {
+    /// The Address of the Instruction that will be executed next (apart from the queud instruction)
     pc: u32,
     /// A queued up Instruction that should be executed next
     /// (Address of Instruction, Instruction)
