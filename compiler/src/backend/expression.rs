@@ -81,8 +81,8 @@ pub fn generate(
 
             internal::store::store_u32(0, *val)
         }
-        ir::Expression::Variable(var_name) => {
-            let var = vars.get(var_name).unwrap();
+        ir::Expression::Variable(variable) => {
+            let var = vars.get(&variable.name).unwrap();
 
             match var.data_type {
                 ir::DataType::Array(_, _) => {
@@ -107,8 +107,8 @@ pub fn generate(
                 }
             }
         }
-        ir::Expression::Reference(var_name) => {
-            let var = vars.get(var_name).unwrap();
+        ir::Expression::Reference(variable) => {
+            let var = vars.get(&variable.name).unwrap();
 
             vec![
                 // Load FP into R0 (mov R14 -> R0)
@@ -192,8 +192,8 @@ pub fn generate(
 mod tests {
     use super::*;
 
-    #[test]
-    fn operation_add() {
+    #[tokio::test]
+    async fn operation_add() {
         let expression = ir::Expression::Operation(
             ir::OP::Add,
             vec![
@@ -213,9 +213,9 @@ mod tests {
 
         let mut input = emulator::MockInput::new(vec![]);
         let mut display = emulator::MockDisplay::new();
-        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
+        let mut test_em = emulator::Emulator::new_test(input, display, result);
 
-        assert!(test_em.run_until(target_pc).is_ok());
+        assert!(test_em.run_until(target_pc).await.is_ok());
 
         let expected_registers = [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80000, 0x80000];
         let final_registers = test_em.clone_registers();

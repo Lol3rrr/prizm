@@ -5,7 +5,7 @@ use crate::{
     lexer::{Token, TokenMetadata},
 };
 
-use super::{comparison, expression};
+use super::{comparison, expression, statements::Variables};
 
 /// Parses an Conditional like `(i < 0)` or `i < 0;` into a proper
 /// ir::Conditional Struct to allow for easier and more uniform usage
@@ -15,6 +15,10 @@ use super::{comparison, expression};
 /// ```rust
 /// # use compiler::lexer::{Token, TokenMetadata};
 /// # use compiler::parser::condition::parse;
+/// # use compiler::parser::statements::Variables;
+/// # use compiler::ir::{Variable, DataType};
+/// # let mut variables = Variables::new();
+/// # variables.insert("test".to_owned(), Variable::new_str("test", DataType::U32));
 /// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
 /// let tokens = &[
 ///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
@@ -26,18 +30,18 @@ use super::{comparison, expression};
 ///
 /// // Parse the Tokens
 /// let mut iter = tokens.iter().peekable();
-/// parse(&mut iter);
+/// parse(&mut iter, &variables);
 ///
 /// // Expect that the Close-Paran is still left in the Stream
 /// assert_eq!(Some(&(Token::CloseParan, empty_metadata)), iter.next());
 /// ```
-pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Condition>
+pub fn parse<'a, I>(iter: &mut Peekable<I>, vars: &Variables) -> Option<ir::Condition>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
-    let left_comp = expression::parse(iter).unwrap();
+    let left_comp = expression::parse(iter, vars).unwrap();
     let comp = comparison::parse(iter).unwrap();
-    let right_comp = expression::parse(iter).unwrap();
+    let right_comp = expression::parse(iter, vars).unwrap();
 
     Some(ir::Condition {
         left: left_comp,
@@ -48,6 +52,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::ir::Variable;
+
     use super::*;
 
     #[test]
@@ -83,12 +89,18 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let left_var = Variable::new_str("test_left", ir::DataType::U32);
+        let right_var = Variable::new_str("test_right", ir::DataType::U32);
+        vars.insert(left_var.name.clone(), left_var.clone());
+        vars.insert(right_var.name.clone(), right_var.clone());
+
         let expected = Some(ir::Condition {
-            left: ir::Expression::Variable("test_left".to_owned()),
-            right: ir::Expression::Variable("test_right".to_owned()),
+            left: ir::Expression::Variable(left_var),
+            right: ir::Expression::Variable(right_var),
             comparison: ir::Comparison::Equal,
         });
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
 }

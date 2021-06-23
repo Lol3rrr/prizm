@@ -10,8 +10,8 @@ use crate::{
 pub fn offsets(statements: &[ir::Statement], vars: &mut VarOffset, final_offset: &mut u8) {
     for tmp in statements.iter() {
         match tmp {
-            ir::Statement::Declaration(name, datatype) => {
-                let var_size = internal::get_size::var_size(&datatype);
+            ir::Statement::Declaration(var) => {
+                let var_size = internal::get_size::var_size(&var.ty);
 
                 let size: u8 = match var_size {
                     VariableSize::Long => 4,
@@ -30,11 +30,11 @@ pub fn offsets(statements: &[ir::Statement], vars: &mut VarOffset, final_offset:
                 }
 
                 vars.insert(
-                    name.to_owned(),
+                    var.name.to_owned(),
                     VariableMetaData {
                         offset: *final_offset,
                         data_size: var_size,
-                        data_type: datatype.clone(),
+                        data_type: var.ty.clone(),
                     },
                 );
                 *final_offset += size;

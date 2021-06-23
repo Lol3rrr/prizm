@@ -5,11 +5,14 @@ use crate::{
     lexer::{Token, TokenMetadata},
 };
 
-use super::parse;
+use super::{parse, Variables};
 
 /// Parses all the Statements between two Curly Brackets `{}`, but
 /// treats them all the same (no scope based variables or the like)
-pub fn parse_scope<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Statement>>
+pub fn parse_scope<'a, I>(
+    iter: &mut Peekable<I>,
+    vars: &mut Variables,
+) -> Option<Vec<ir::Statement>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
@@ -19,7 +22,7 @@ where
         _ => return None,
     };
 
-    let inner = parse(iter);
+    let inner = parse(iter, vars);
 
     // Expect a closing curly brace at the end
     match iter.next() {

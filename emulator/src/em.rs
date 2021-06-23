@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// The actual Emulator itself
-pub struct Emulator<'k, 'd, K, D>
+pub struct Emulator<K, D>
 where
     K: Input,
     D: Display,
@@ -14,27 +14,23 @@ where
     file: Option<g3a::File>,
     cpu: CPU,
     memory: Memory,
-    input: &'k mut K,
-    display: &'d mut D,
+    input: K,
+    display: D,
     debugger: Box<dyn Debugger>,
 }
 
-impl<'k, 'd, K, D> Emulator<'k, 'd, K, D>
+impl<K, D> Emulator<K, D>
 where
     K: Input,
     D: Display,
 {
-    pub fn new<'b, 'c>(file: g3a::File, input: &'b mut K, display: &'c mut D) -> Self
-    where
-        'b: 'k,
-        'c: 'd,
-    {
-        let mut memory = Memory::new();
+    pub fn new(file: g3a::File, input: K, display: D) -> Self {
+        let mut memory = Memory::new_with_code_size(file.executable_code.len());
         memory.write_register(15, 0x80000);
         memory.write_register(14, 0x80000);
 
         for (i, tmp) in file.executable_code.iter().enumerate() {
-            memory.write_byte(i as u32 + CODE_MAPPING_OFFSET, *tmp, display);
+            memory.write_byte(i as u32 + CODE_MAPPING_OFFSET, *tmp);
         }
 
         Self {
@@ -47,15 +43,7 @@ where
         }
     }
 
-    pub fn new_test<'b, 'c>(
-        input: &'b mut K,
-        display: &'c mut D,
-        instructions: Vec<asm::Instruction>,
-    ) -> Self
-    where
-        'b: 'k,
-        'c: 'd,
-    {
+    pub fn new_test(input: K, display: D, instructions: Vec<asm::Instruction>) -> Self {
         let mut memory = Memory::new();
         memory.write_register(15, 0x80000);
         memory.write_register(14, 0x80000);
@@ -63,8 +51,8 @@ where
         let mut index = 0;
         for instr in instructions.iter() {
             let data = instr.to_byte();
-            memory.write_byte(index + CODE_MAPPING_OFFSET, data[0], display);
-            memory.write_byte(index + CODE_MAPPING_OFFSET + 1, data[1], display);
+            memory.write_byte(index + CODE_MAPPING_OFFSET, data[0]);
+            memory.write_byte(index + CODE_MAPPING_OFFSET + 1, data[1]);
 
             index += 2;
         }
@@ -78,18 +66,9 @@ where
             debugger: Box::new(CLIDebugger::new()),
         }
     }
-    pub fn new_test_raw<'b, 'c>(
-        input: &'b mut K,
-        display: &'c mut D,
-        instr: Vec<u8>,
-        mut memory: Memory,
-    ) -> Self
-    where
-        'b: 'k,
-        'c: 'd,
-    {
+    pub fn new_test_raw(input: K, display: D, instr: Vec<u8>, mut memory: Memory) -> Self {
         for (index, byte) in instr.iter().enumerate() {
-            memory.write_byte(index as u32 + CODE_MAPPING_OFFSET, *byte, display);
+            memory.write_byte(index as u32 + CODE_MAPPING_OFFSET, *byte);
         }
 
         Self {
@@ -170,18 +149,18 @@ where
     }
 
     /// Runs until the given PC has been reached or an exception was raised
-    pub fn run_until(&mut self, target_pc: u32) -> Result<(), Exception> {
+    pub async fn run_until(&mut self, target_pc: u32) -> Result<(), Exception> {
         loop {
-            self.emulate_single()?;
+            self.emulate_single().await?;
             if self.pc() >= target_pc {
                 return Ok(());
             }
         }
     }
     /// Runs until the Program returned or an exception was raised
-    pub fn run_completion(&mut self) -> Result<(), Exception> {
+    pub async fn run_completion(&mut self) -> Result<(), Exception> {
         loop {
-            self.emulate_single()?;
+            self.emulate_single().await?;
 
             if self.cpu.pc() == 0 {
                 return Ok(());
@@ -190,12 +169,25 @@ where
     }
 
     /// Emulates the execution of a single Instruction on the CPU
-    pub fn emulate_single(&mut self) -> Result<(), Exception> {
-        self.cpu.tick(
-            &mut self.memory,
-            self.display,
-            self.input,
-            self.debugger.as_ref(),
-        )
+    pub async fn emulate_single(&mut self) -> Result<(), Exception> {
+        self.cpu
+            .tick(
+                &mut self.memory,
+                &mut self.display,
+                &mut self.input,
+                self.debugger.as_ref(),
+            )
+            .await
+    }
+
+    pub fn get_display_mut(&mut self) -> &mut D {
+        &mut self.display
+    }
+    pub fn get_input_mut(&mut self) -> &mut K {
+        &mut self.input
+    }
+
+    pub fn force_display(&mut self) {
+        self.display.display_vram(&mut self.memory);
     }
 }

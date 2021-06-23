@@ -1,8 +1,8 @@
 use compiler;
 use emulator;
 
-#[test]
-fn simple_aray_based_assignemnt() {
+#[tokio::test]
+async fn simple_aray_based_assignemnt() {
     let target_address: usize = 13124;
     let target_value: u8 = 1;
     let program = "int store() {
@@ -17,24 +17,23 @@ fn simple_aray_based_assignemnt() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![]);
+    let mock_input = emulator::MockInput::new(vec![]);
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut display = emulator::MockDisplay::new();
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let display = emulator::MockDisplay::new();
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
+    assert!(test_em.run_completion().await.is_ok());
 
     let heap = test_em.clone_heap();
 
     assert_eq!(target_value, *heap.get(target_address).unwrap());
 }
 
-#[test]
-fn simple_aray_based_assignemnt_load() {
+#[tokio::test]
+async fn simple_aray_based_assignemnt_load() {
     let target_address: usize = 13124;
     let target_value: u8 = 1;
     let program = "int store() {
@@ -49,24 +48,23 @@ fn simple_aray_based_assignemnt_load() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![]);
-    let mut display = emulator::MockDisplay::new();
+    let mock_input = emulator::MockInput::new(vec![]);
+    let display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
+    assert!(test_em.run_completion().await.is_ok());
 
     let heap = test_em.clone_heap();
 
     assert_eq!(target_value, *heap.get(target_address).unwrap());
 }
 
-#[test]
-fn array_variable() {
+#[tokio::test]
+async fn array_variable() {
     let target_address: usize = 0x80000 - 4 * 5 - 8;
     let target_value: u8 = 1;
     let program = "int main() {
@@ -77,16 +75,15 @@ fn array_variable() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![]);
-    let mut display = emulator::MockDisplay::new();
+    let mock_input = emulator::MockInput::new(vec![]);
+    let display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
+    assert!(test_em.run_completion().await.is_ok());
 
     let heap = test_em.clone_heap();
 

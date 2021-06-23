@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::{statement, Functions, Offsets};
-use crate::{asm, ir};
+use crate::{asm, ir, pretty_print};
 
 mod variables;
 
@@ -32,7 +32,7 @@ pub fn generate(
     offsets: &mut Offsets,
     functions: &Functions,
 ) {
-    func.pretty_print();
+    pretty_print::pretty_print(func);
 
     let (var_offsets, stack_offset) = variables::get_offset(&func);
 

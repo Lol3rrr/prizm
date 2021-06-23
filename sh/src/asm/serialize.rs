@@ -56,6 +56,9 @@ pub fn serialize(instr: &Instruction) -> [u8; 2] {
         Instruction::StsMacl(target) => [0x00 | (target & 0x0f), 0x1a],
         Instruction::StsLMacl(stack) => [0x40 | (stack & 0x0f), 0x12],
         Instruction::Literal(first, second) => [*first, *second],
+        Instruction::Label(_) => panic!("Labels are not an actual underlying instruction and only used to provide more structure"),
+        Instruction::JmpLabel(_) => panic!("Jump-Labels are not an actual underlying instruction and only used to provide more structure"),
+        Instruction::JsrLabel(_) => panic!("Jump-Subroutine-Labels are not an actual underlying instruction and only used to provide more structure"),
         _ => unimplemented!("Combination {:?} is not yet implemented", instr),
     }
 }

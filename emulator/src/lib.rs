@@ -26,6 +26,9 @@ use sh::asm;
 
 pub const CODE_MAPPING_OFFSET: u32 = 0x00300000;
 
+#[cfg(feature = "wasm")]
+mod wasm;
+
 /// The Exceptions that could be thrown during
 /// the Execution of Code as a result of wrong
 /// behaviour of the Program
@@ -38,4 +41,12 @@ pub enum Exception {
 pub enum DisplayBits {
     HighBits,
     LowBits,
+}
+
+/// Actually runs the Emulator
+pub fn run<I, D>(emulator: Emulator<I, D>)
+where
+    I: Input,
+    D: Display,
+{
 }

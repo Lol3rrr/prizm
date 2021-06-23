@@ -17,7 +17,8 @@ struct RizmEmulate {
     input: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cmd = RizmEmulate::from_args();
 
     let raw_file = std::fs::read(cmd.input).unwrap();
@@ -31,7 +32,7 @@ fn main() {
     let mut cli_input = target::CLIInput::new();
     let mut mock_display = emulator::MockDisplay::new();
 
-    let mut em = Emulator::new(file, &mut cli_input, &mut mock_display);
+    let mut em = Emulator::new(file, cli_input, mock_display);
     loop {
         let mut cli_in = String::new();
         stdout().write(&[b'>']).expect("Writing to Stdout");
@@ -48,7 +49,7 @@ fn main() {
                     println!("Reached Breakpoint");
                     break;
                 }
-                if let Err(e) = em.emulate_single() {
+                if let Err(e) = em.emulate_single().await {
                     println!("Error: {:?}", e);
                     break;
                 }
@@ -70,7 +71,7 @@ fn main() {
                 };
             }
             Some("step") => {
-                if let Err(e) = em.emulate_single() {
+                if let Err(e) = em.emulate_single().await {
                     println!("Error: {:?}", e);
                 }
             }

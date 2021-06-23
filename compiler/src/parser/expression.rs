@@ -5,6 +5,8 @@ use crate::{
     lexer::{Token, TokenMetadata},
 };
 
+use super::statements::Variables;
+
 mod single;
 
 /// Parses the Token-Stream into a single Expression that may
@@ -14,6 +16,10 @@ mod single;
 /// ```rust
 /// # use compiler::lexer::{Token, TokenMetadata};
 /// # use compiler::parser::expression::parse;
+/// # use compiler::parser::statements::Variables;
+/// # use compiler::ir::{Variable, DataType};
+/// # let mut variables = Variables::new();
+/// # variables.insert("test".to_owned(), Variable::new_str("test", DataType::U32));
 /// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
 /// let tokens = &[
 ///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
@@ -22,19 +28,19 @@ mod single;
 ///
 /// // Parse the Tokens
 /// let mut iter = tokens.iter().peekable();
-/// parse(&mut iter);
+/// parse(&mut iter, &variables);
 ///
 /// // Expect the ending Semicolon to still be left in the Token-Stream
 /// assert_eq!(Some(&(Token::Semicolon, empty_metadata)), iter.next());
 /// ```
-pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
+pub fn parse<'a, I>(iter: &mut Peekable<I>, vars: &Variables) -> Option<ir::Expression>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     match iter.peek() {
         Some((Token::OpenParan, _)) => {
             iter.next();
-            let inner = parse(iter);
+            let inner = parse(iter, vars);
 
             match iter.next() {
                 Some((Token::CloseParan, _)) => {}
@@ -44,7 +50,7 @@ where
             inner
         }
         Some((Token::Constant(_), _)) | Some((Token::Identifier(_), _)) => {
-            let left_side = single::parse_single(iter)?;
+            let left_side = single::parse_single(iter, vars)?;
 
             match iter.peek() {
                 Some((Token::Plus, _))
@@ -59,7 +65,7 @@ where
                         _ => return None,
                     };
 
-                    let right_side = match parse(iter) {
+                    let right_side = match parse(iter, vars) {
                         Some(r) => r,
                         None => return None,
                     };
@@ -96,12 +102,15 @@ where
                 _ => return None,
             };
 
-            Some(ir::Expression::Reference(var_name))
+            match vars.get(&var_name) {
+                Some(variable) => Some(ir::Expression::Reference(variable.clone())),
+                None => None,
+            }
         }
         Some((Token::Asterisk, _)) => {
             iter.next().unwrap();
 
-            let inner = parse(iter).unwrap();
+            let inner = parse(iter, vars).unwrap();
 
             Some(ir::Expression::Dereference(Box::new(inner)))
         }
@@ -112,7 +121,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::Value;
+    use crate::{ir::Variable, lexer::Value};
 
     #[test]
     fn constant() {
@@ -126,7 +135,10 @@ mod tests {
 
         let expected = Some(ir::Expression::Constant(ir::Value::I32(2)));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &Variables::new())
+        );
     }
     #[test]
     fn variable() {
@@ -138,9 +150,13 @@ mod tests {
             },
         )];
 
-        let expected = Some(ir::Expression::Variable("test".to_string()));
+        let var = Variable::new_str("test", ir::DataType::U32);
+        let expected = Some(ir::Expression::Variable(var.clone()));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        let mut vars = Variables::new();
+        vars.insert(var.name.clone(), var);
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
 
     #[test]
@@ -177,7 +193,10 @@ mod tests {
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &Variables::new())
+        );
     }
     #[test]
     fn variable_plus_variable() {
@@ -205,15 +224,21 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        let test_2_var = Variable::new_str("test_2", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+        vars.insert(test_2_var.name.clone(), test_2_var.clone());
+
         let expected = Some(ir::Expression::Operation(
             ir::OP::Add,
             vec![
-                ir::Expression::Variable("test_1".to_string()),
-                ir::Expression::Variable("test_2".to_string()),
+                ir::Expression::Variable(test_1_var),
+                ir::Expression::Variable(test_2_var),
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn variable_multiply_variable() {
@@ -241,15 +266,21 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        let test_2_var = Variable::new_str("test_2", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+        vars.insert(test_2_var.name.clone(), test_2_var.clone());
+
         let expected = Some(ir::Expression::Operation(
             ir::OP::Multiply,
             vec![
-                ir::Expression::Variable("test_1".to_string()),
-                ir::Expression::Variable("test_2".to_string()),
+                ir::Expression::Variable(test_1_var),
+                ir::Expression::Variable(test_2_var),
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn variable_multiply_variable_plus_variable() {
@@ -291,21 +322,29 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        let test_2_var = Variable::new_str("test_2", ir::DataType::U32);
+        let test_3_var = Variable::new_str("test_3", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+        vars.insert(test_2_var.name.clone(), test_2_var.clone());
+        vars.insert(test_3_var.name.clone(), test_3_var.clone());
+
         let expected = Some(ir::Expression::Operation(
             ir::OP::Add,
             vec![
                 ir::Expression::Operation(
                     ir::OP::Multiply,
                     vec![
-                        ir::Expression::Variable("test_1".to_string()),
-                        ir::Expression::Variable("test_2".to_string()),
+                        ir::Expression::Variable(test_1_var),
+                        ir::Expression::Variable(test_2_var),
                     ],
                 ),
-                ir::Expression::Variable("test_3".to_string()),
+                ir::Expression::Variable(test_3_var),
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn variable_divide_variable() {
@@ -333,15 +372,21 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        let test_2_var = Variable::new_str("test_2", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+        vars.insert(test_2_var.name.clone(), test_2_var.clone());
+
         let expected = Some(ir::Expression::Operation(
             ir::OP::Divide,
             vec![
-                ir::Expression::Variable("test_1".to_string()),
-                ir::Expression::Variable("test_2".to_string()),
+                ir::Expression::Variable(test_1_var),
+                ir::Expression::Variable(test_2_var),
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn variable_divide_variable_plus_variable() {
@@ -383,21 +428,29 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        let test_2_var = Variable::new_str("test_2", ir::DataType::U32);
+        let test_3_var = Variable::new_str("test_3", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+        vars.insert(test_2_var.name.clone(), test_2_var.clone());
+        vars.insert(test_3_var.name.clone(), test_3_var.clone());
+
         let expected = Some(ir::Expression::Operation(
             ir::OP::Add,
             vec![
                 ir::Expression::Operation(
                     ir::OP::Divide,
                     vec![
-                        ir::Expression::Variable("test_1".to_string()),
-                        ir::Expression::Variable("test_2".to_string()),
+                        ir::Expression::Variable(test_1_var),
+                        ir::Expression::Variable(test_2_var),
                     ],
                 ),
-                ir::Expression::Variable("test_3".to_string()),
+                ir::Expression::Variable(test_3_var),
             ],
         ));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
 
     #[test]
@@ -411,7 +464,7 @@ mod tests {
                 },
             ),
             (
-                Token::Identifier("test".to_string()),
+                Token::Identifier("test_1".to_string()),
                 TokenMetadata {
                     file_name: "test".to_string(),
                     line: 1,
@@ -419,9 +472,13 @@ mod tests {
             ),
         ];
 
-        let expected = Some(ir::Expression::Reference("test".to_string()));
+        let mut vars = Variables::new();
+        let test_1_var = Variable::new_str("test_1", ir::DataType::U32);
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        let expected = Some(ir::Expression::Reference(test_1_var));
+
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn dereference_variable() {
@@ -434,7 +491,7 @@ mod tests {
                 },
             ),
             (
-                Token::Identifier("test".to_string()),
+                Token::Identifier("test_1".to_string()),
                 TokenMetadata {
                     file_name: "test".to_string(),
                     line: 1,
@@ -442,11 +499,16 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_1_var =
+            Variable::new_str("test_1", ir::DataType::Ptr(Box::new(ir::DataType::U32)));
+        vars.insert(test_1_var.name.clone(), test_1_var.clone());
+
         let expected = Some(ir::Expression::Dereference(Box::new(
-            ir::Expression::Variable("test".to_string()),
+            ir::Expression::Variable(test_1_var),
         )));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &vars));
     }
     #[test]
     fn dereference_constant() {
@@ -471,7 +533,10 @@ mod tests {
             ir::Expression::Constant(ir::Value::I32(0)),
         )));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &Variables::new())
+        );
     }
     #[test]
     fn dereference_calc() {
@@ -530,6 +595,9 @@ mod tests {
             ),
         )));
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &Variables::new())
+        );
     }
 }

@@ -1,4 +1,4 @@
-use crate::asm;
+use sh::asm;
 
 /// Converts the Assembly to the final ByteCode
 pub fn to_bytes(instr: Vec<asm::Instruction>) -> Vec<u8> {

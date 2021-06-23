@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 use crate::{
-    ir,
+    ir::{self, Variable},
     lexer::{Token, TokenMetadata},
 };
 
@@ -65,7 +65,15 @@ where
         None => return None,
     };
 
-    let statements = statements::parse(iter);
+    let mut vars = statements::Variables::new();
+    for (arg_name, arg_ty) in args.iter() {
+        let name = arg_name.to_owned();
+        let ty = arg_ty.clone();
+
+        vars.insert(name.clone(), Variable { name, ty });
+    }
+
+    let statements = statements::parse(iter, &mut vars);
 
     match iter.next() {
         Some((Token::CloseCurlyBrace, _)) => {}

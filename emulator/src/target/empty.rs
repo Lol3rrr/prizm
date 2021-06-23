@@ -1,5 +1,3 @@
-use sh::asm::Instruction;
-
 use crate::traits::Debugger;
 
 pub struct EmptyDebugger {}
@@ -11,5 +9,5 @@ impl EmptyDebugger {
 }
 
 impl Debugger for EmptyDebugger {
-    fn print_instr(&self, addr: u32, instr: &Instruction) {}
+    fn print(&self, _content: &str) {}
 }

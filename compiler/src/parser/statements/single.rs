@@ -1,6 +1,8 @@
 use std::iter::Peekable;
 
 use super::scope;
+use super::Variables;
+use crate::ir::Variable;
 use crate::parser::{call_params, condition, datatype, expression};
 use crate::{
     const_eval, ir,
@@ -8,7 +10,7 @@ use crate::{
 };
 
 /// Parses a Single Statement, like a single Line or a Loop
-pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Option<Vec<ir::Statement>>
+pub fn parse<'a, I>(iter: &mut Peekable<I>, vars: &mut Variables) -> Option<Vec<ir::Statement>>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
@@ -16,7 +18,7 @@ where
     match peeked {
         (Token::Keyword(Keyword::Return), _) => {
             iter.next();
-            let expression = match expression::parse(iter) {
+            let expression = match expression::parse(iter, &vars) {
                 Some(exp) => exp,
                 None => ir::Expression::Empty,
             };
@@ -39,14 +41,14 @@ where
                 _ => return None,
             };
 
-            let cond = condition::parse(iter).unwrap();
+            let cond = condition::parse(iter, &vars).unwrap();
 
             match iter.next() {
                 Some((Token::CloseParan, _)) => {}
                 _ => return None,
             };
 
-            let inner = scope::parse_scope(iter).unwrap();
+            let inner = scope::parse_scope(iter, vars).unwrap();
 
             Some(vec![ir::Statement::WhileLoop(cond, inner)])
         }
@@ -58,9 +60,9 @@ where
                 _ => return None,
             };
 
-            let first = parse(iter)?;
+            let first = parse(iter, vars)?;
 
-            let cond = condition::parse(iter).unwrap();
+            let cond = condition::parse(iter, &vars).unwrap();
 
             match iter.peek() {
                 Some((Token::Semicolon, _)) => {
@@ -69,7 +71,7 @@ where
                 _ => {}
             };
 
-            let third = parse(iter)?;
+            let third = parse(iter, vars)?;
             match iter.peek() {
                 Some((Token::CloseParan, _)) => {
                     iter.next();
@@ -77,7 +79,7 @@ where
                 _ => {}
             };
 
-            let mut inner_loop = scope::parse_scope(iter).unwrap();
+            let mut inner_loop = scope::parse_scope(iter, vars).unwrap();
             inner_loop.extend(third);
 
             let mut result = first;
@@ -93,14 +95,14 @@ where
                 _ => return None,
             };
 
-            let cond = condition::parse(iter).unwrap();
+            let cond = condition::parse(iter, &vars).unwrap();
 
             match iter.next() {
                 Some((Token::CloseParan, _)) => {}
                 _ => return None,
             };
 
-            let inner = scope::parse_scope(iter).unwrap();
+            let inner = scope::parse_scope(iter, vars).unwrap();
 
             Some(vec![ir::Statement::If(cond, inner)])
         }
@@ -120,18 +122,22 @@ where
 
             match iter.next() {
                 Some((Token::OpenSquareBrace, _)) => {
-                    let raw_size = expression::parse(iter)?;
+                    let raw_size = expression::parse(iter, &vars)?;
                     let size = const_eval::evaluate(raw_size)?;
                     iter.next();
                     iter.next();
 
-                    Some(vec![ir::Statement::Declaration(
-                        var_name,
-                        ir::DataType::Array(Box::new(d_type), size),
-                    )])
+                    let variable = Variable {
+                        name: var_name.clone(),
+                        ty: ir::DataType::Array(Box::new(d_type), size),
+                    };
+
+                    vars.insert(var_name, variable.clone());
+
+                    Some(vec![ir::Statement::Declaration(variable)])
                 }
                 Some((Token::Equals, _)) => {
-                    let value = expression::parse(iter)?;
+                    let value = expression::parse(iter, &vars)?;
 
                     // Removes the next item if its a semicolon
                     match iter.peek() {
@@ -141,13 +147,25 @@ where
                         _ => {}
                     };
 
+                    let variable = Variable {
+                        name: var_name.clone(),
+                        ty: d_type,
+                    };
+
+                    vars.insert(var_name, variable.clone());
+
                     Some(vec![
-                        ir::Statement::Declaration(var_name.clone(), d_type),
-                        ir::Statement::Assignment(var_name, value),
+                        ir::Statement::Declaration(variable.clone()),
+                        ir::Statement::Assignment(variable, value),
                     ])
                 }
                 Some((Token::Semicolon, _)) => {
-                    Some(vec![ir::Statement::Declaration(var_name, d_type)])
+                    let variable = Variable {
+                        name: var_name.clone(),
+                        ty: d_type,
+                    };
+                    vars.insert(var_name, variable.clone());
+                    Some(vec![ir::Statement::Declaration(variable)])
                 }
                 Some((_, metadata)) => {
                     println!("{:?}", metadata);
@@ -161,7 +179,7 @@ where
 
             match iter.next() {
                 Some((Token::Equals, _)) => {
-                    let expression = match expression::parse(iter) {
+                    let expression = match expression::parse(iter, &vars) {
                         Some(exp) => exp,
                         None => return None,
                     };
@@ -174,10 +192,15 @@ where
                         _ => {}
                     };
 
-                    Some(vec![ir::Statement::Assignment(name.to_owned(), expression)])
+                    let variable = match vars.get(name) {
+                        Some(var) => var.clone(),
+                        None => return None,
+                    };
+
+                    Some(vec![ir::Statement::Assignment(variable, expression)])
                 }
                 Some((Token::OpenSquareBrace, _)) => {
-                    let index_exp = expression::parse(iter)?;
+                    let index_exp = expression::parse(iter, &vars)?;
 
                     match iter.peek() {
                         Some((Token::CloseSquareBrace, _)) => {
@@ -191,7 +214,7 @@ where
                         _ => return None,
                     };
 
-                    let exp = match expression::parse(iter) {
+                    let exp = match expression::parse(iter, &vars) {
                         Some(e) => e,
                         None => return None,
                     };
@@ -203,16 +226,21 @@ where
                         _ => {}
                     };
 
+                    let variable = match vars.get(name) {
+                        Some(var) => var.clone(),
+                        None => return None,
+                    };
+
                     Some(vec![ir::Statement::DerefAssignment(
                         ir::Expression::Indexed(
-                            Box::new(ir::Expression::Variable(name.clone())),
+                            Box::new(ir::Expression::Variable(variable)),
                             Box::new(index_exp),
                         ),
                         exp,
                     )])
                 }
                 Some((Token::OpenParan, _)) => {
-                    let params = match call_params::parse(iter) {
+                    let params = match call_params::parse(iter, &vars) {
                         Some(p) => p,
                         None => return None,
                     };
@@ -235,11 +263,11 @@ where
         (Token::Asterisk, _) => {
             iter.next();
 
-            let expression = expression::parse(iter)?;
+            let expression = expression::parse(iter, &vars)?;
 
             match iter.next() {
                 Some((Token::Equals, _)) => {
-                    let exp = match expression::parse(iter) {
+                    let exp = match expression::parse(iter, &vars) {
                         Some(e) => e,
                         None => return None,
                     };

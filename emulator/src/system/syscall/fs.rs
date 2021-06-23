@@ -1,3 +1,5 @@
+use crate::Memory;
+
 const BFILE_CLOSEFILE_OS: u32 = 0x1da4;
 const BFILE_CREATEENTRY_OS: u32 = 0x1dae;
 const BFILE_DELETEENTRY: u32 = 0x1db4;
@@ -11,7 +13,33 @@ pub fn is_syscall(id: u32) -> bool {
     }
 }
 
-pub fn handle_syscall(id: u32, param_1: u32, param_2: u32, param_3: u32, param_4: u32) {
+fn load_16_bit_name(ptr: u32, memory: &mut Memory) -> Option<String> {
+    let mut buffer = Vec::new();
+    let mut current_ptr = ptr;
+    loop {
+        let part = memory.read_word(current_ptr);
+        if part == 0x0000 {
+            break;
+        }
+
+        buffer.push(part);
+        current_ptr += 2;
+    }
+
+    match String::from_utf16(&buffer) {
+        Ok(s) => Some(s),
+        Err(e) => None,
+    }
+}
+
+pub fn handle_syscall(
+    id: u32,
+    param_1: u32,
+    param_2: u32,
+    param_3: u32,
+    param_4: u32,
+    memory: &mut Memory,
+) {
     match id {
         // https://prizm.cemetech.net/index.php?title=Bfile_CloseFile_OS
         BFILE_CLOSEFILE_OS => {
@@ -95,6 +123,12 @@ pub fn handle_syscall(id: u32, param_1: u32, param_2: u32, param_3: u32, param_4
             println!("FileName: {}", param_1);
             println!("Mode: {}", param_2);
             println!("Zero: {}", param_3);
+
+            let name = match load_16_bit_name(param_1, memory) {
+                Some(n) => n,
+                None => return,
+            };
+            println!("Loading File: {:?}", name);
         }
         // https://prizm.cemetech.net/index.php?title=Bfile_ReadFile_OS
         0x1dac => {

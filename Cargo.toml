@@ -1,2 +1,2 @@
 [workspace]
-members = ["compiler", "emulator", "sh", "g3a"]
+members = ["compiler", "assembler", "emulator", "sh", "g3a"]

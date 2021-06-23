@@ -1,4 +1,4 @@
-use crate::asm;
+use sh::asm;
 
 mod convert;
 mod entry;

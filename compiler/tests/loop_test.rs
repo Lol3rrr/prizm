@@ -1,8 +1,8 @@
 use compiler;
 use emulator::{self, Key, Modifier};
 
-#[test]
-fn simple_loop() {
+#[tokio::test]
+async fn simple_loop() {
     let program = "int main() {
         int key = 0;
 
@@ -15,24 +15,23 @@ fn simple_loop() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![
+    let mock_input = emulator::MockInput::new(vec![
         (Key::Number(0), Modifier::None),
         (Key::Number(0), Modifier::None),
     ]);
-    let mut display = emulator::MockDisplay::new();
+    let display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
-    assert_eq!(0, mock_input.left_over().len());
+    assert!(test_em.run_completion().await.is_ok());
+    assert_eq!(0, test_em.get_input_mut().left_over().len());
 }
 
-#[test]
-fn nested_loop() {
+#[tokio::test]
+async fn nested_loop() {
     let program = "int main() {
         int key = 0;
 
@@ -47,26 +46,25 @@ fn nested_loop() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![
+    let mock_input = emulator::MockInput::new(vec![
         (Key::Number(0), Modifier::None),
         (Key::Number(0), Modifier::None),
         (Key::Number(0), Modifier::None),
         (Key::Number(0), Modifier::None),
     ]);
-    let mut display = emulator::MockDisplay::new();
+    let display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
-    assert_eq!(0, mock_input.left_over().len());
+    assert!(test_em.run_completion().await.is_ok());
+    assert_eq!(0, test_em.get_input_mut().left_over().len());
 }
 
-#[test]
-fn nested_deref() {
+#[tokio::test]
+async fn nested_deref() {
     let program = "int main() {
         int key = 0;
         unsigned int vram = 100;
@@ -82,16 +80,15 @@ fn nested_deref() {
 
     let compiled = compiler::compile(program, "test".to_string());
 
-    let mut mock_input = emulator::MockInput::new(vec![]);
-    let mut display = emulator::MockDisplay::new();
+    let mock_input = emulator::MockInput::new(vec![]);
+    let display = emulator::MockDisplay::new();
     let mut memory = emulator::Memory::new();
     memory.write_register(15, 0x80000);
     memory.write_register(14, 0x80000);
 
-    let mut test_em =
-        emulator::Emulator::new_test_raw(&mut mock_input, &mut display, compiled, memory);
+    let mut test_em = emulator::Emulator::new_test_raw(mock_input, display, compiled, memory);
 
-    assert!(test_em.run_completion().is_ok());
+    assert!(test_em.run_completion().await.is_ok());
 
     let heap = test_em.clone_heap();
     let expected = vec![1; 25];

@@ -1,19 +1,24 @@
-use std::iter::Peekable;
+use std::{collections::HashMap, iter::Peekable};
 
 use crate::{
-    ir,
+    ir::{self, Variable},
     lexer::{Token, TokenMetadata},
 };
 
 mod scope;
 mod single;
 
+pub type Variables = HashMap<String, Variable>;
+
 /// Parses the Token-Stream into a List of Statements
 ///
 /// # Example:
 /// ```rust
 /// # use compiler::lexer::{Token, TokenMetadata};
-/// # use compiler::parser::statements::parse;
+/// # use compiler::parser::statements::{parse, Variables};
+/// # use compiler::ir::{Variable, DataType};
+/// # let mut variables = Variables::new();
+/// # variables.insert("test".to_owned(), Variable::new_str("test", DataType::U32));
 /// # let empty_metadata = TokenMetadata { file_name: "test".to_owned(), line: 1, };
 /// let tokens = &[
 ///     (Token::Identifier("test".to_owned()), empty_metadata.clone()),
@@ -22,18 +27,18 @@ mod single;
 ///
 /// // Parse the Tokens
 /// let mut iter = tokens.iter().peekable();
-/// parse(&mut iter);
+/// parse(&mut iter, &mut variables);
 ///
 /// // Expect
 /// assert_eq!(None, iter.next());
 /// ```
-pub fn parse<'a, I>(iter: &mut Peekable<I>) -> Vec<ir::Statement>
+pub fn parse<'a, I>(iter: &mut Peekable<I>, vars: &mut Variables) -> Vec<ir::Statement>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
     let mut result = Vec::new();
 
-    while let Some(mut tmp) = single::parse(iter) {
+    while let Some(mut tmp) = single::parse(iter, vars) {
         result.append(&mut tmp);
     }
 
@@ -42,6 +47,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::ir::DataType;
     use crate::lexer::{Keyword, Value};
 
     use super::*;
@@ -142,9 +148,13 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let i_var = Variable::new_str("i", DataType::U32);
+        vars.insert("i".to_string(), i_var.clone());
+
         let expected: Vec<ir::Statement> = vec![ir::Statement::WhileLoop(
             ir::Condition {
-                left: ir::Expression::Variable("i".to_string()),
+                left: ir::Expression::Variable(i_var),
                 comparison: ir::Comparison::Equal,
                 right: ir::Expression::Constant(ir::Value::I32(0)),
             },
@@ -154,7 +164,7 @@ mod tests {
             ))],
         )];
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &mut vars));
     }
 
     #[test]
@@ -323,12 +333,14 @@ mod tests {
             ),
         ];
 
+        let i_var = Variable::new_str("i", DataType::I32);
+
         let expected: Vec<ir::Statement> = vec![
-            ir::Statement::Declaration("i".to_string(), ir::DataType::I32),
-            ir::Statement::Assignment("i".to_string(), ir::Expression::Constant(ir::Value::I32(0))),
+            ir::Statement::Declaration(i_var.clone()),
+            ir::Statement::Assignment(i_var.clone(), ir::Expression::Constant(ir::Value::I32(0))),
             ir::Statement::WhileLoop(
                 ir::Condition {
-                    left: ir::Expression::Variable("i".to_string()),
+                    left: ir::Expression::Variable(i_var.clone()),
                     comparison: ir::Comparison::LessThan,
                     right: ir::Expression::Constant(ir::Value::I32(10)),
                 },
@@ -338,11 +350,11 @@ mod tests {
                         vec![],
                     )),
                     ir::Statement::Assignment(
-                        "i".to_owned(),
+                        i_var.clone(),
                         ir::Expression::Operation(
                             ir::OP::Add,
                             vec![
-                                ir::Expression::Variable("i".to_owned()),
+                                ir::Expression::Variable(i_var.clone()),
                                 ir::Expression::Constant(ir::Value::I32(1)),
                             ],
                         ),
@@ -351,7 +363,10 @@ mod tests {
             ),
         ];
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &mut Variables::new())
+        );
     }
 
     #[test]
@@ -394,12 +409,16 @@ mod tests {
             ),
         ];
 
+        let mut vars = Variables::new();
+        let test_var = Variable::new_str("test", DataType::Ptr(Box::new(DataType::I32)));
+        vars.insert("test".to_string(), test_var.clone());
+
         let expected = vec![ir::Statement::DerefAssignment(
-            ir::Expression::Variable("test".to_string()),
+            ir::Expression::Variable(test_var),
             ir::Expression::Constant(ir::Value::I32(0)),
         )];
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(expected, parse(&mut tokens.iter().peekable(), &mut vars));
     }
 
     #[test]
@@ -481,6 +500,9 @@ mod tests {
             ir::Expression::Constant(ir::Value::I32(0)),
         )];
 
-        assert_eq!(expected, parse(&mut tokens.iter().peekable()));
+        assert_eq!(
+            expected,
+            parse(&mut tokens.iter().peekable(), &mut Variables::new())
+        );
     }
 }

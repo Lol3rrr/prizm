@@ -46,8 +46,8 @@ pub fn generate(
             let op_source = asm::Operand::Register(0);
 
             let mov = match destination {
-                ir::Expression::Variable(name) => {
-                    let var = vars.get(name).unwrap();
+                ir::Expression::Variable(variable) => {
+                    let var = vars.get(&variable.name).unwrap();
 
                     let data_type = match &var.data_type {
                         ir::DataType::Ptr(tmp) => tmp,
@@ -63,7 +63,7 @@ pub fn generate(
 
             result
         }
-        Statement::Assignment(name, exp) => {
+        Statement::Assignment(variable, exp) => {
             let mut result = Vec::new();
 
             result.append(&mut expression::generate(
@@ -73,7 +73,7 @@ pub fn generate(
             // Load FP into R1
             result.push(asm::Instruction::Mov(1, 14));
             // Add the Offset to R1 to get address of local variable into R1
-            let var = vars.get(name).unwrap();
+            let var = vars.get(&variable.name).unwrap();
             result.push(asm::Instruction::AddI(1, var.offset));
 
             let op_target = asm::Operand::AtRegister(1);
@@ -162,19 +162,22 @@ pub fn generate(
 
             result
         }
-        ir::Statement::Declaration(_, _) => Vec::new(),
+        ir::Statement::Declaration(_) => Vec::new(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::function::{VariableMetaData, VariableSize};
+    use crate::{
+        backend::function::{VariableMetaData, VariableSize},
+        ir::Variable,
+    };
 
     #[test]
     fn assign_constant() {
         let statement = ir::Statement::Assignment(
-            "test".to_owned(),
+            Variable::new_str("test", ir::DataType::U32),
             ir::Expression::Constant(ir::Value::U32(0)),
         );
 
@@ -204,14 +207,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn assign_var_plus_const() {
+    #[tokio::test]
+    async fn assign_var_plus_const() {
         let statement = ir::Statement::Assignment(
-            "test".to_owned(),
+            Variable::new_str("test", ir::DataType::U32),
             ir::Expression::Operation(
                 ir::OP::Add,
                 vec![
-                    ir::Expression::Variable("test".to_owned()),
+                    ir::Expression::Variable(Variable::new_str("test", ir::DataType::U32)),
                     ir::Expression::Constant(ir::Value::U32(1)),
                 ],
             ),
@@ -238,11 +241,11 @@ mod tests {
 
         let target_pc = (result.len() * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
 
-        let mut input = emulator::MockInput::new(vec![]);
-        let mut display = emulator::MockDisplay::new();
-        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
+        let input = emulator::MockInput::new(vec![]);
+        let display = emulator::MockDisplay::new();
+        let mut test_em = emulator::Emulator::new_test(input, display, result);
 
-        assert!(test_em.run_until(target_pc).is_ok());
+        assert!(test_em.run_until(target_pc).await.is_ok());
 
         let final_registers = test_em.clone_registers();
         let final_heap = test_em.clone_heap();

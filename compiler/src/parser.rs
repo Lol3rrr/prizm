@@ -220,9 +220,9 @@ mod tests {
             ir::DataType::I32,
             vec![],
             vec![
-                ir::Statement::Declaration("test".to_string(), ir::DataType::I32),
+                ir::Statement::Declaration(ir::Variable::new_str("test", ir::DataType::I32)),
                 ir::Statement::Assignment(
-                    "test".to_string(),
+                    ir::Variable::new_str("test", ir::DataType::I32),
                     ir::Expression::Constant(ir::Value::I32(2)),
                 ),
                 ir::Statement::Return(ir::Expression::Constant(ir::Value::I32(0))),
@@ -333,9 +333,9 @@ mod tests {
             ir::DataType::I32,
             vec![],
             vec![
-                ir::Statement::Declaration("test_add".to_string(), ir::DataType::I32),
+                ir::Statement::Declaration(ir::Variable::new_str("test_add", ir::DataType::I32)),
                 ir::Statement::Assignment(
-                    "test_add".to_string(),
+                    ir::Variable::new_str("test_add", ir::DataType::I32),
                     ir::Expression::Operation(
                         ir::OP::Add,
                         vec![
@@ -464,9 +464,9 @@ mod tests {
             ir::DataType::I32,
             vec![],
             vec![
-                ir::Statement::Declaration("test_add".to_string(), ir::DataType::I32),
+                ir::Statement::Declaration(ir::Variable::new_str("test_add", ir::DataType::I32)),
                 ir::Statement::Assignment(
-                    "test_add".to_string(),
+                    ir::Variable::new_str("test_add", ir::DataType::I32),
                     ir::Expression::Operation(
                         ir::OP::Add,
                         vec![
@@ -588,9 +588,9 @@ mod tests {
             ir::DataType::I32,
             vec![],
             vec![
-                ir::Statement::Declaration("test_sub".to_string(), ir::DataType::I32),
+                ir::Statement::Declaration(ir::Variable::new_str("test_sub", ir::DataType::I32)),
                 ir::Statement::Assignment(
-                    "test_sub".to_string(),
+                    ir::Variable::new_str("test_sub", ir::DataType::I32),
                     ir::Expression::Operation(
                         ir::OP::Substract,
                         vec![
@@ -838,9 +838,9 @@ mod tests {
             ir::DataType::I32,
             vec![],
             vec![
-                ir::Statement::Declaration("test_var".to_string(), ir::DataType::I32),
+                ir::Statement::Declaration(ir::Variable::new_str("test_var", ir::DataType::I32)),
                 ir::Statement::Assignment(
-                    "test_var".to_string(),
+                    ir::Variable::new_str("test_var", ir::DataType::I32),
                     ir::Expression::Call("test_func".to_string(), vec![]),
                 ),
                 ir::Statement::Return(ir::Expression::Constant(ir::Value::I32(0))),

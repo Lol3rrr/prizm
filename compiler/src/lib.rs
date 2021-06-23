@@ -1,12 +1,14 @@
 use sh::asm;
 
-pub mod assembler;
 pub mod backend;
 pub mod const_eval;
 pub mod ir;
 pub mod lexer;
 pub mod optimizer;
 pub mod parser;
+pub mod semantics;
+
+pub mod pretty_print;
 
 // The CPU in the casio calculators is 32Bit
 // Instr-DOCS: http://shared-ptr.com/sh_insns.html
@@ -16,6 +18,10 @@ pub fn compile(content: &str, file: String) -> Vec<u8> {
     let tokens = lexer::tokenize(content, file);
 
     let raw_ir = parser::parse(&tokens);
+
+    if !semantics::validate(&raw_ir) {
+        panic!("Semantically not correct");
+    }
 
     let ir = optimizer::optimize(raw_ir);
 

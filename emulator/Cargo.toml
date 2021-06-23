@@ -6,9 +6,34 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["cli", "wasm"]
+cli = ["tokio"]
+wasm = ["wasm-bindgen", "web-sys", "console_error_panic_hook"]
+
 [dependencies]
 sh = { path = "../sh" }
 g3a = { path = "../g3a" }
 
 structopt = { version = "0.3" }
 
+wasm-bindgen = { version = "0.2.73", optional = true }
+web-sys = { version = "0.3.4", features = ['CanvasRenderingContext2d',
+  'Document',
+  'Element',
+  'HtmlCanvasElement',
+  'Window'], optional = true }
+console_error_panic_hook = { version = "0.1.6", optional = true }
+
+tokio = { version = "1.5", features = ["rt", "rt-multi-thread", "macros"], optional = true }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "benchmark"
+harness = false
+path = "./benches/benchmark.rs"

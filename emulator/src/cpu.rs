@@ -48,16 +48,7 @@ impl CPU {
     }
 
     /// Executes the single given Instruction
-    fn execute<D>(
-        &mut self,
-        instr: Instruction,
-        memory: &mut Memory,
-        display: &mut D,
-        debugger: &dyn Debugger,
-    ) -> Result<(), Exception>
-    where
-        D: Display,
-    {
+    fn execute(&mut self, instr: Instruction, memory: &mut Memory) -> Result<(), Exception> {
         match &instr {
             // Move Instructions
             Instruction::Mov(n_register, m_register) => {
@@ -102,7 +93,7 @@ impl CPU {
                     }
                     asm::Operand::AtRegister(n_register) => {
                         let target_addr = memory.read_register(*n_register);
-                        memory.write_byte(target_addr, value as u8, display);
+                        memory.write_byte(target_addr, value as u8);
                     }
                     _ => unimplemented!("Unknown Target: {:?}", target),
                 };
@@ -126,7 +117,7 @@ impl CPU {
                 match target {
                     asm::Operand::AtRegister(n_register) => {
                         let target_addr = memory.read_register(*n_register);
-                        memory.write_word(target_addr, value as u16, display);
+                        memory.write_word(target_addr, value as u16);
                     }
                     asm::Operand::Register(n_register) => {
                         memory.write_register(*n_register, value);
@@ -160,16 +151,16 @@ impl CPU {
                     }
                     asm::Operand::AtRegister(n_register) => {
                         let addr = memory.read_register(*n_register);
-                        memory.write_long(addr, value, display);
+                        memory.write_long(addr, value);
                     }
                     asm::Operand::OffsetR0(offset_reg) => {
                         let addr = memory.read_register(0) + memory.read_register(*offset_reg);
-                        memory.write_long(addr, value, display);
+                        memory.write_long(addr, value);
                     }
                     asm::Operand::Displacement4Reg(disp, n_register) => {
                         let extended = 0x0000000F & (*disp as u32);
                         let addr = memory.read_register(*n_register) + extended * 4;
-                        memory.write_long(addr, value, display);
+                        memory.write_long(addr, value);
                     }
                     _ => unimplemented!("Unknown Target: {:?}", target),
                 };
@@ -188,7 +179,7 @@ impl CPU {
                 n -= 1;
                 memory.write_register(*n_register, n);
                 let value = memory.read_register(*m_register);
-                memory.write_byte(n, value as u8, display);
+                memory.write_byte(n, value as u8);
 
                 self.pc += 2;
             }
@@ -196,7 +187,7 @@ impl CPU {
                 let mut n = memory.read_register(*n_register);
                 n -= 4;
                 memory.write_register(*n_register, n);
-                memory.write_long(n, memory.read_register(*m_register), display);
+                memory.write_long(n, memory.read_register(*m_register));
                 self.pc += 2;
             }
             Instruction::ExtuW(n_register, m_register) => {
@@ -483,7 +474,7 @@ impl CPU {
             }
             Instruction::PushPROther(n_register) => {
                 memory.write_register(*n_register, memory.read_register(*n_register) - 4);
-                memory.write_long(memory.read_register(*n_register), memory.pr, display);
+                memory.write_long(memory.read_register(*n_register), memory.pr);
                 self.pc += 2;
             }
             Instruction::PopPROther(n_register) => {
@@ -498,7 +489,7 @@ impl CPU {
             }
             Instruction::StsLMacl(n_register) => {
                 memory.write_register(*n_register, memory.read_register(*n_register) - 4);
-                memory.write_long(memory.read_register(*n_register), memory.macl, display);
+                memory.write_long(memory.read_register(*n_register), memory.macl);
                 self.pc += 2;
             }
             Instruction::LdsLMacl(stack_reg) => {
@@ -515,7 +506,7 @@ impl CPU {
             }
             Instruction::StsLMach(n_register) => {
                 memory.write_register(*n_register, memory.read_register(*n_register) - 4);
-                memory.write_long(memory.read_register(*n_register), memory.mach, display);
+                memory.write_long(memory.read_register(*n_register), memory.mach);
                 self.pc += 2;
             }
             Instruction::LdsLMach(stack_reg) => {
@@ -564,7 +555,7 @@ impl CPU {
     }
 
     /// Emulates a single CPU-Tick, meaning that only one instruction will be executed
-    pub fn tick<D, I>(
+    pub async fn tick<D, I>(
         &mut self,
         memory: &mut Memory,
         display: &mut D,
@@ -581,7 +572,7 @@ impl CPU {
         if let Some((addr, queued)) = std::mem::replace(&mut self.queued_instr, None) {
             let prev_pc = self.pc;
             debugger.print_instr(addr, &queued);
-            self.execute(queued, memory, display, debugger)?;
+            self.execute(queued, memory)?;
             self.pc = prev_pc;
             return Ok(());
         }
@@ -590,7 +581,7 @@ impl CPU {
             // Syscalls
             0x80020070 => {
                 let id = memory.read_register(0);
-                system::syscall(id, memory, input, display);
+                system::syscall(id, memory, input, display, debugger).await;
                 self.pc = memory.pr;
 
                 Ok(())
@@ -598,7 +589,7 @@ impl CPU {
             _ => {
                 let instr = Self::fetch_instruction(self.pc, memory);
                 debugger.print_instr(self.pc, &instr);
-                self.execute(instr, memory, display, debugger)
+                self.execute(instr, memory)
             }
         }
     }

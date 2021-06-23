@@ -65,17 +65,17 @@ pub fn store_u32(register: u8, value: u32) -> Vec<asm::Instruction> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn u16() {
+    #[tokio::test]
+    async fn u16() {
         let result = store_u16(0, 0x1234);
 
         let target_pc = (result.len() * 2) as u32 + emulator::CODE_MAPPING_OFFSET;
 
         let mut input = emulator::MockInput::new(vec![]);
         let mut display = emulator::MockDisplay::new();
-        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
+        let mut test_em = emulator::Emulator::new_test(input, display, result);
 
-        assert!(test_em.run_until(target_pc).is_ok());
+        assert!(test_em.run_until(target_pc).await.is_ok());
 
         let expected_registers = [
             0x1234, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80000, 0x80000,
@@ -85,8 +85,8 @@ mod tests {
         assert_eq!(expected_registers, final_registers);
     }
 
-    #[test]
-    fn u32() {
+    #[tokio::test]
+    async fn u32() {
         let result = store_u32(0, 0x12345678);
 
         let instr_count = result.len();
@@ -94,9 +94,9 @@ mod tests {
 
         let mut input = emulator::MockInput::new(vec![]);
         let mut display = emulator::MockDisplay::new();
-        let mut test_em = emulator::Emulator::new_test(&mut input, &mut display, result);
+        let mut test_em = emulator::Emulator::new_test(input, display, result);
 
-        assert!(test_em.run_until(target_pc).is_ok());
+        assert!(test_em.run_until(target_pc).await.is_ok());
 
         let expected_registers = [
             0x12345678, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80000, 0x80000,

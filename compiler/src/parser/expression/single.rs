@@ -3,13 +3,13 @@ use std::iter::Peekable;
 use crate::{
     ir,
     lexer::{Token, TokenMetadata, Value},
-    parser::call_params,
+    parser::{call_params, statements::Variables},
 };
 
 use super::parse;
 
 /// Parses a single Expression, so only Constants and Variables
-pub fn parse_single<'a, I>(iter: &mut Peekable<I>) -> Option<ir::Expression>
+pub fn parse_single<'a, I>(iter: &mut Peekable<I>, vars: &Variables) -> Option<ir::Expression>
 where
     I: Iterator<Item = &'a (Token, TokenMetadata)>,
 {
@@ -27,27 +27,35 @@ where
                 Some((Token::OpenParan, _)) => {
                     iter.next();
 
-                    let params = call_params::parse(iter)?;
+                    let params = call_params::parse(iter, vars)?;
                     Some(ir::Expression::Call(name.to_owned(), params))
                 }
                 Some((Token::OpenSquareBrace, _)) => {
                     iter.next();
 
-                    let index = parse(iter)?;
+                    let index = parse(iter, vars)?;
 
                     match iter.next() {
                         Some((Token::CloseSquareBrace, _)) => {}
                         _ => return None,
                     };
 
+                    let variable = match vars.get(name) {
+                        Some(v) => v.clone(),
+                        None => return None,
+                    };
+
                     Some(ir::Expression::Dereference(Box::new(
                         ir::Expression::Indexed(
-                            Box::new(ir::Expression::Variable(name.to_owned())),
+                            Box::new(ir::Expression::Variable(variable)),
                             Box::new(index),
                         ),
                     )))
                 }
-                _ => Some(ir::Expression::Variable(name.to_owned())),
+                _ => match vars.get(name) {
+                    Some(variable) => Some(ir::Expression::Variable(variable.clone())),
+                    None => None,
+                },
             }
         }
         _ => None,

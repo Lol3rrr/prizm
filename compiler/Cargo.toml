@@ -9,10 +9,12 @@ edition = "2018"
 [dependencies]
 sh = { path = "../sh" }
 g3a = { path = "../g3a" }
+assembler = { path = "../assembler" }
 
 rand = { version = "0.8" }
 chrono = { version = "0.4.19" }
 structopt = { version = "0.3" }
 
 [dev-dependencies]
-emulator = { path = "../emulator" }
+emulator = { path = "../emulator", default_features = false, features = ["cli"] }
+tokio = { version = "1.5", features = ["macros"] }

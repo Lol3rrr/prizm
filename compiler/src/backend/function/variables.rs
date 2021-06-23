@@ -21,7 +21,10 @@ pub fn get_offset(func: &ir::Function) -> (VarOffset, u8) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::function::{VariableMetaData, VariableSize};
+    use crate::{
+        backend::function::{VariableMetaData, VariableSize},
+        ir::Variable,
+    };
 
     #[test]
     fn no_vars() {
@@ -51,9 +54,9 @@ mod tests {
             ir::DataType::Void,
             vec![],
             vec![
-                ir::Statement::Declaration("test".to_owned(), ir::DataType::U32),
+                ir::Statement::Declaration(Variable::new_str("test", ir::DataType::U32)),
                 ir::Statement::Assignment(
-                    "test".to_owned(),
+                    Variable::new_str("test", ir::DataType::U32),
                     ir::Expression::Constant(ir::Value::U32(0)),
                 ),
             ],
@@ -113,9 +116,9 @@ mod tests {
             ir::DataType::Void,
             vec![("var".to_owned(), ir::DataType::U32)],
             vec![
-                ir::Statement::Declaration("test".to_owned(), ir::DataType::U32),
+                ir::Statement::Declaration(Variable::new_str("test", ir::DataType::U32)),
                 ir::Statement::Assignment(
-                    "test".to_owned(),
+                    Variable::new_str("test", ir::DataType::U32),
                     ir::Expression::Constant(ir::Value::U32(0)),
                 ),
             ],
