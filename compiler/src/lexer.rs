@@ -58,3 +58,17 @@ pub struct TokenMetadata {
 pub fn tokenize(content: &str, file_name: String) -> Vec<(Token, TokenMetadata)> {
     tokenizer::tokenize(content, file_name)
 }
+
+#[cfg(test)]
+#[macro_export]
+macro_rules! test_token_pair {
+    ($t:expr) => {
+        (
+            $t,
+            TokenMetadata {
+                file_name: "test".to_string(),
+                line: 1,
+            },
+        )
+    };
+}
